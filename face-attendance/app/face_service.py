@@ -1,7 +1,6 @@
 import face_recognition
-import numpy as np
 
-def detect_face(image_path: str):
+def analyze_face(image_path: str):
 
     image = face_recognition.load_image_file(image_path)
 
@@ -9,20 +8,35 @@ def detect_face(image_path: str):
     # model="hog" itu berbasis CPU — cocok untuk development
     # nanti bisa diganti model="cnn" untuk akurasi lebih tinggi (butuh GPU)
 
-    jumlah_wajah = len(face_locations)
-
-    if jumlah_wajah == 0:
-        return{"status": "gagal", "pesan": "Tidak ada wajah yang terdeteksi."}
+    if len(face_locations) == 0:
+        return {"status": "No face",
+                "pesan": "Tidak ada wajah yang terdeteksi."
+                }
     
-    if jumlah_wajah > 1:
-        return{"status": "gagal", "pesan": f"Terdeteksi {jumlah_wajah} wajah. Pastikan hanya satu wajah dalam gambar."}
+    if len(face_locations) > 1:
+        return{
+            "status": "multiple faces",
+            "pesan": f"Terdeteksi {len(face_locations)} wajah. Pastikan hanya satu wajah."
+        }
     
-    return {"status": "ok", "pesan": "1 wajah terdeteksi"}
+    top, right, bottom, left = face_locations[0]
+    face_width = right - left
+    face_height = bottom - top
 
-def generate_embedding(image_path: str):
-    image = face_recognition.load_image_file(image_path)
-    face_locations = face_recognition.face_locations(image, model="hog")
-
+    if face_width < 100 or face_height < 100:
+        return {
+            "status": "face too small",
+            "pesan": f"Wajah terlalu kecil. Dekatkan wajahmu ke kamera."
+        }
+    
     embeddings = face_recognition.face_encodings(image, face_locations)
-    embedding = embeddings[0] 
-    return embedding.tolist()
+    if not embeddings:
+        return{
+            "status": "encoding failed",
+            "pesan": "Gagal generate embedding."
+        }
+    return {
+        "status" : "ok",
+        "embedding": embeddings[0].tolist()
+    }
+                
