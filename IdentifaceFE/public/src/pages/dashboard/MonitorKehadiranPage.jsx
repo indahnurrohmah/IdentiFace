@@ -1,54 +1,23 @@
 import { useState } from 'react'
-import Navbar from '../../components/layout/Navbar'
-import Sidebar from '../../components/layout/Sidebar'
-import Card from '../../components/ui/Card'
-import Button from '../../components/ui/Button'
+import { useNavigate } from 'react-router-dom'
 
-export default function MonitorKehadiranPage() {
-  const [activeMenu, setActiveMenu] = useState('monitor')
+export default function MonitorPage() {
+  const navigate = useNavigate()
   const [selectedStudents, setSelectedStudents] = useState({})
 
   const summaryStats = [
-    { label: 'Hadir', value: '50', bgColor: '#86efac' },
-    { label: 'Terlambat', value: '4', bgColor: '#fcd34d' },
-    { label: 'Tidak Hadir', value: '0', bgColor: '#f87171' },
-    { label: 'Izin/Sakit', value: '3', bgColor: '#6BAAAF' },
+    { label: 'Hadir', value: '50', className: 'bg-green-300' },
+    { label: 'Terlambat', value: '4', className: 'bg-yellow-300' },
+    { label: 'Tidak Hadir', value: '0', className: 'bg-red-300' },
+    { label: 'Izin/Sakit', value: '3', className: 'bg-[#6BAAAF]' },
   ]
 
-  const studentData = [
-    {
-      id: 1,
-      nama: 'Annisaa',
-      tanggal: '16/03/2026',
-      waktu: '08:30 WIB',
-      status: 'Hadir',
-      aksi: ['Tambah', 'Hapus'],
-    },
-    {
-      id: 2,
-      nama: 'Annisaa',
-      tanggal: '16/03/2026',
-      waktu: '08:30 WIB',
-      status: 'Hadir',
-      aksi: ['Tambah', 'Hapus'],
-    },
-    {
-      id: 3,
-      nama: 'Annisaa',
-      tanggal: '16/03/2026',
-      waktu: '08:30 WIB',
-      status: 'Hadir',
-      aksi: ['Tambah', 'Hapus'],
-    },
-    {
-      id: 4,
-      nama: 'Annisaa',
-      tanggal: '16/03/2026',
-      waktu: '08:30 WIB',
-      status: 'Hadir',
-      aksi: ['Tambah', 'Hapus'],
-    },
-  ]
+  const studentData = Array(4).fill({
+    nama: 'Annisaa',
+    tanggal: '16/03/2026',
+    waktu: '08:30 WIB',
+    status: 'Hadir',
+  })
 
   const handleCheckboxChange = (id) => {
     setSelectedStudents((prev) => ({
@@ -57,105 +26,158 @@ export default function MonitorKehadiranPage() {
     }))
   }
 
-  const handleSave = () => {
-    alert('Data kehadiran disimpan (mock)')
-  }
-
-  const handleRefresh = () => {
-    alert('Data diperbarui (mock)')
-  }
-
   return (
-    <div className="admin-layout">
-      <Navbar userName="Ahmad Nasikun" />
+    <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
+      <header className="flex items-center justify-between px-10 py-5">
+        <div className="flex items-center gap-3">
+          <div className="w-14 h-14 rounded-full bg-[#123B5D] text-white flex items-center justify-center font-bold">
+            IF
+          </div>
+          <h1 className="text-3xl font-bold">IdentiFace</h1>
+        </div>
 
-      <div className="admin-container">
-        <Sidebar activeMenu={activeMenu} />
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold">Ahmad Nasikun</h2>
+          <div className="w-12 h-12 rounded-full border-4 border-[#123B5D]" />
+        </div>
+      </header>
 
-        <main className="admin-content">
-          <section className="monitoring-header">
+      <main className="flex-1 px-10 pb-10 flex gap-8">
+        <aside className="w-64 bg-[#6BAAAF] rounded-lg shadow-md px-5 py-7 flex flex-col">
+          <h2 className="text-center text-xl font-bold mb-6">Menu Dosen</h2>
+
+          <nav className="space-y-3">
+            <button
+              onClick={() => navigate('/dosen/dashboard')}
+              className="w-full h-10 rounded border border-white text-black font-semibold"
+            >
+              Dashboard
+            </button>
+
+            <button
+              onClick={() => navigate('/dosen/schedule')}
+              className="w-full h-10 rounded border border-white text-black font-semibold"
+            >
+              Jadwal Sesi
+            </button>
+
+            <button className="w-full h-10 rounded bg-[#123B5D] text-white font-semibold">
+              Monitor Kehadiran
+            </button>
+          </nav>
+
+          <button
+            onClick={() => navigate('/')}
+            className="mt-auto w-full h-10 rounded bg-[#B82410] text-white font-semibold"
+          >
+            Keluar
+          </button>
+        </aside>
+
+        <section className="flex-1">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <h1>Monitoring Kehadiran</h1>
-              <p className="monitoring-date">Senin, 16 Maret 2026 - Semester Genap 2025/2026</p>
+              <h1 className="text-3xl font-bold">Monitoring Kehadiran</h1>
+              <p className="text-sm text-gray-600">
+                Senin, 16 Maret 2026 - Semester Genap 2025/2026
+              </p>
             </div>
-            <Button variant="primary" onClick={handleRefresh}>
-              🔄 Refresh
-            </Button>
-          </section>
 
-          <section className="summary-cards">
+            <button className="bg-[#123B5D] text-white px-6 py-3 rounded-lg font-semibold">
+              Refresh
+            </button>
+          </div>
+
+          <div className="grid grid-cols-4 gap-5 mb-8">
             {summaryStats.map((stat) => (
-              <div key={stat.label} className="summary-card" style={{ backgroundColor: stat.bgColor }}>
-                <h3>{stat.label}</h3>
-                <p className="summary-value">{stat.value}</p>
+              <div
+                key={stat.label}
+                className={`${stat.className} rounded-lg shadow-md px-5 py-5 h-28`}
+              >
+                <p className="font-semibold text-center">{stat.label}</p>
+                <h2 className="text-4xl font-bold text-center mt-4">
+                  {stat.value}
+                </h2>
               </div>
             ))}
-          </section>
+          </div>
 
-          <section className="student-section">
-            <Card variant="section">
-              <div className="student-header">
-                <h2>Daftar Mahasiswa</h2>
-              </div>
+          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-lg shadow-md p-3">
+            <div className="bg-[#6BAAAF] text-white px-4 py-3 rounded-t font-semibold">
+              Daftar Mahasiswa
+            </div>
 
-              <div className="table-wrapper">
-                <table className="student-table">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '40px' }}>
-                        <input type="checkbox" className="table-checkbox" />
-                      </th>
-                      <th>Nama Mahasiswa</th>
-                      <th>Tanggal</th>
-                      <th>Waktu</th>
-                      <th>Status</th>
-                      <th>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {studentData.map((student) => (
-                      <tr key={student.id}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            className="table-checkbox"
-                            checked={selectedStudents[student.id] || false}
-                            onChange={() => handleCheckboxChange(student.id)}
-                          />
-                        </td>
-                        <td>{student.nama}</td>
-                        <td>{student.tanggal}</td>
-                        <td>{student.waktu}</td>
-                        <td>
-                          <span className="status-badge">{student.status}</span>
-                        </td>
-                        <td>
-                          <div className="action-badges">
-                            {student.aksi.map((action, idx) => (
-                              <span
-                                key={idx}
-                                className={`action-badge badge-${action.toLowerCase()}`}
-                              >
-                                {action}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <table className="w-full bg-white">
+              <thead>
+                <tr className="border-b">
+                  <th className="px-5 py-4 w-12">
+                    <input type="checkbox" />
+                  </th>
+                  <th className="text-left px-5 py-4">Nama Mahasiswa</th>
+                  <th className="text-left px-5 py-4">Tanggal</th>
+                  <th className="text-left px-5 py-4">Waktu</th>
+                  <th className="text-left px-5 py-4">Status</th>
+                  <th className="text-left px-5 py-4">Aksi</th>
+                </tr>
+              </thead>
 
-              <div className="student-footer">
-                <Button variant="primary" fullWidth onClick={handleSave}>
-                  Simpan
-                </Button>
-              </div>
-            </Card>
-          </section>
-        </main>
-      </div>
+              <tbody>
+                {studentData.map((student, index) => (
+                  <tr key={index} className="border-b">
+                    <td className="px-5 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedStudents[index] || false}
+                        onChange={() => handleCheckboxChange(index)}
+                      />
+                    </td>
+
+                    <td className="px-5 py-4">{student.nama}</td>
+                    <td className="px-5 py-4">{student.tanggal}</td>
+                    <td className="px-5 py-4">{student.waktu}</td>
+
+                    <td className="px-5 py-4">
+                      <span className="bg-green-200 px-4 py-2 rounded font-semibold">
+                        {student.status}
+                      </span>
+                    </td>
+
+                    <td className="px-5 py-4">
+                      <div className="flex gap-2">
+                        <button className="bg-green-200 px-4 py-2 rounded font-semibold">
+                          Tambah
+                        </button>
+                        <button className="bg-red-200 px-4 py-2 rounded font-semibold">
+                          Hapus
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="pt-5">
+              <button className="w-full bg-[#123B5D] text-white py-3 rounded font-semibold">
+                Simpan
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="bg-[#74B5BD] py-5 text-center">
+        <div className="flex justify-center items-center gap-2 mb-2">
+          <div className="w-8 h-8 rounded-full bg-[#123B5D] text-white flex items-center justify-center text-xs">
+            IF
+          </div>
+          <span className="font-semibold">IdentiFace</span>
+        </div>
+
+        <p className="font-semibold">
+          Privacy Policy | Terms of Service
+        </p>
+      </footer>
     </div>
   )
 }

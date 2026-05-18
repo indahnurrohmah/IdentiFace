@@ -1,102 +1,152 @@
 import { useState } from 'react'
-import Button from '../../components/ui/Button'
-import Input from '../../components/ui/Input'
+import { useNavigate } from 'react-router-dom'
 
 export default function Login() {
-  const [form, setForm] = useState({ username: '', password: '' })
-  const [error, setError] = useState('')
+  const navigate = useNavigate()
+
+  const [form, setForm] = useState({
+    username: '',
+    password: '',
+  })
+
   const [loading, setLoading] = useState(false)
 
-  const handleChange = (event) => {
-    const { name, value } = event.target
-    setForm((prev) => ({ ...prev, [name]: value }))
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    })
   }
 
-  const handleSubmit = (event) => {
-    event.preventDefault()
+  const handleSubmit = (e) => {
+    e.preventDefault()
 
-    if (!form.username || !form.password) {
-      setError('Username dan password wajib diisi')
-      return
-    }
-
-    setError('')
     setLoading(true)
 
     setTimeout(() => {
       setLoading(false)
-      alert('Login berhasil (mock)')
-    }, 1200)
+      navigate('/dosen/dashboard')
+    }, 1000)
   }
 
   const handleGoogleSignIn = () => {
-    alert('Masuk dengan Google (mock)')
+    alert('Google Login')
   }
 
   return (
-    <div className="page-root">
-      <header className="topbar">
-        <div className="brand">
-          <div className="brand-icon">IF</div>
-          <span>IdentiFace</span>
+    <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
+
+      <header className="flex items-center justify-between px-10 py-6">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-[#123B5D] flex items-center justify-center text-white font-bold">
+            IF
+          </div>
+
+          <h1 className="text-3xl font-bold">
+            IdentiFace
+          </h1>
         </div>
 
-        <button type="button" className="topbar-button">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="bg-[#123B5D] text-white px-8 py-3 rounded-xl font-semibold"
+        >
           Beranda
         </button>
       </header>
 
-      <main className="login-shell">
-        <div className="login-card">
-          <div className="login-header">
-            <h1>Login Form</h1>
-          </div>
+      <main className="flex-1 flex items-center justify-center pb-16">
+        <div className="w-full max-w-md bg-white rounded-[28px] shadow-md px-10 py-9">
 
-          <form onSubmit={handleSubmit} className="login-form">
-            <Input
-              label="Username"
-              name="username"
-              placeholder="Masukkan username"
-              value={form.username}
-              onChange={handleChange}
-              error={!form.username && error ? 'Username wajib diisi' : ''}
-              autoComplete="username"
-            />
+          <h2 className="text-3xl font-bold text-center mb-10">
+            Login Form
+          </h2>
 
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              placeholder="Masukkan password"
-              value={form.password}
-              onChange={handleChange}
-              error={!form.password && error ? 'Password wajib diisi' : ''}
-              autoComplete="current-password"
-            />
+          <form onSubmit={handleSubmit} className="space-y-6">
 
-            <div className="form-footer">
-              <a href="#" className="forgot-link">
-                Forgot Password?
-              </a>
+            <div>
+              <label className="block mb-2 font-semibold">
+                Username
+              </label>
+
+              <input
+                type="text"
+                name="username"
+                value={form.username}
+                onChange={handleChange}
+                className="w-full h-12 border border-slate-400 rounded-md px-4"
+              />
             </div>
 
-            <Button type="submit" variant="primary" fullWidth loading={loading}>
-              Masuk
-            </Button>
+            <div>
+              <label className="block mb-2 font-semibold">
+                Password
+              </label>
+
+              <input
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                className="w-full h-12 border border-slate-400 rounded-md px-4"
+              />
+            </div>
+
+            <a href="#" className="text-sm underline">
+              Forgot Password?
+            </a>
+
+            <button
+              type="submit"
+              className="w-full h-12 bg-[#123B5D] text-white rounded-md font-semibold"
+            >
+              {loading ? 'Loading...' : 'Masuk'}
+            </button>
           </form>
 
-          <div className="divider">Atau</div>
+          <div className="flex items-center gap-4 my-6">
+            <div className="flex-1 h-px bg-gray-300"></div>
+            <span className="text-gray-400">Atau</span>
+            <div className="flex-1 h-px bg-gray-300"></div>
+          </div>
 
-          <Button type="button" variant="google" fullWidth onClick={handleGoogleSignIn}>
-            <span className="google-icon">G</span>
+          <button
+            type="button"
+            onClick={handleGoogleSignIn}
+            className="w-full h-12 border border-gray-300 rounded-md flex items-center justify-center gap-3 font-medium"
+          >
+            <span className="text-xl font-bold text-red-500">
+              G
+            </span>
+
             Masuk dengan Google
-          </Button>
+          </button>
 
-          <p className="login-note">
-            Belum Punya Akun? <a href="#">Hubungi Administrator</a>
+          <p className="text-center mt-8 text-sm">
+            Belum Punya Akun?{' '}
+            <a href="#" className="text-blue-600 underline">
+              Hubungi Administrator
+            </a>
           </p>
         </div>
       </main>
+
+      <footer className="bg-[#74B5BD] py-6 text-center">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="w-8 h-8 rounded-full bg-[#123B5D] flex items-center justify-center text-white text-sm font-bold">
+            IF
+          </div>
+
+          <span className="font-semibold text-lg">
+            IdentiFace
+          </span>
+        </div>
+
+        <p className="font-medium">
+          Privacy Policy | Terms of Service
+        </p>
+      </footer>
     </div>
   )
 }

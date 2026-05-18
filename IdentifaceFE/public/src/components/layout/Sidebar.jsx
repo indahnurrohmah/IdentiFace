@@ -1,6 +1,6 @@
 import Button from '../ui/Button'
 
-export default function Sidebar({ activeMenu = 'dashboard', menuItems = null, isStudent = false, isAdmin = false }) {
+export default function Sidebar({ activeMenu = 'dashboard', menuItems = null, isStudent = false, isAdmin = false, onMenuClick, onLogout }) {
   const defaultMenuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'jadwal', label: 'Jadwal Sesi', icon: '📅' },
@@ -32,6 +32,7 @@ export default function Sidebar({ activeMenu = 'dashboard', menuItems = null, is
           <button
             key={item.id}
             className={`sidebar-item ${activeMenu === item.id ? 'active' : ''}`}
+            onClick={() => onMenuClick && onMenuClick(item.id)}
           >
             <span className="sidebar-icon">{item.icon}</span>
             <span className="sidebar-label">{item.label}</span>
@@ -40,7 +41,7 @@ export default function Sidebar({ activeMenu = 'dashboard', menuItems = null, is
       </nav>
 
       <div className="sidebar-footer">
-        <Button variant="danger" fullWidth>
+        <Button variant="danger" fullWidth onClick={onLogout}>
           🚪 Keluar
         </Button>
       </div>

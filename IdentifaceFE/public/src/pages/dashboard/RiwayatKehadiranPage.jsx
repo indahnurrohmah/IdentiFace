@@ -1,10 +1,7 @@
 import { useState } from 'react'
-import Navbar from '../../components/layout/Navbar'
-import Sidebar from '../../components/layout/Sidebar'
 import Card from '../../components/ui/Card'
 
 export default function RiwayatKehadiranPage() {
-  const [activeMenu, setActiveMenu] = useState('riwayat')
   const [selectedSemester, setSelectedSemester] = useState('Semester Genap 2025/2026')
 
   const attendanceData = [
@@ -48,83 +45,75 @@ export default function RiwayatKehadiranPage() {
   }
 
   return (
-    <div className="admin-layout">
-      <Navbar userName="Bambang Pamungkas" />
+    <>
+      <section className="riwayat-header">
+        <div>
+          <h1>Riwayat Presensi</h1>
+          <p className="dashboard-date">29/12345656/SA321 - {selectedSemester}</p>
+        </div>
+        <select
+          value={selectedSemester}
+          onChange={(e) => setSelectedSemester(e.target.value)}
+          className="semester-selector"
+        >
+          <option>Semester Genap 2025/2026</option>
+          <option>Semester Ganjil 2024/2025</option>
+          <option>Semester Genap 2024/2025</option>
+        </select>
+      </section>
 
-      <div className="admin-container">
-        <Sidebar activeMenu={activeMenu} isStudent={true} />
+      <Card variant="section">
+        <div className="table-responsive">
+          <table className="attendance-table">
+            <thead>
+              <tr>
+                <th>No</th>
+                <th>Mata Kuliah</th>
+                <th>Kode</th>
+                <th>SKS</th>
+                <th>Kelas</th>
+                <th>Dosen</th>
+                <th>Pertemuan Terlaksana</th>
+                <th>Kehadiran</th>
+              </tr>
+            </thead>
+            <tbody>
+              {attendanceData.map((row, index) => (
+                <tr key={row.id}>
+                  <td className="text-center">{index + 1}</td>
+                  <td>{row.mataKuliah}</td>
+                  <td className="text-center">{row.kode}</td>
+                  <td className="text-center">{row.sks}</td>
+                  <td className="text-center">{row.kelas}</td>
+                  <td className="text-small">{row.dosen}</td>
+                  <td className="text-center">{row.pertemuanTerlaksana}</td>
+                  <td className="text-center">
+                    <span
+                      className="attendance-badge"
+                      style={{
+                        backgroundColor: getKehadiranColor(row.kehadiran),
+                        padding: '4px 12px',
+                        borderRadius: '4px',
+                        color: 'white',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                      }}
+                    >
+                      {row.kehadiran}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-        <main className="admin-content">
-          <section className="riwayat-header">
-            <div>
-              <h1>Riwayat Presensi</h1>
-              <p className="dashboard-date">29/12345656/SA321 - {selectedSemester}</p>
-            </div>
-            <select
-              value={selectedSemester}
-              onChange={(e) => setSelectedSemester(e.target.value)}
-              className="semester-selector"
-            >
-              <option>Semester Genap 2025/2026</option>
-              <option>Semester Ganjil 2024/2025</option>
-              <option>Semester Genap 2024/2025</option>
-            </select>
-          </section>
-
-          <Card variant="section">
-            <div className="table-responsive">
-              <table className="attendance-table">
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>Mata Kuliah</th>
-                    <th>Kode</th>
-                    <th>SKS</th>
-                    <th>Kelas</th>
-                    <th>Dosen</th>
-                    <th>Pertemuan Terlaksana</th>
-                    <th>Kehadiran</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {attendanceData.map((row, index) => (
-                    <tr key={row.id}>
-                      <td className="text-center">{index + 1}</td>
-                      <td>{row.mataKuliah}</td>
-                      <td className="text-center">{row.kode}</td>
-                      <td className="text-center">{row.sks}</td>
-                      <td className="text-center">{row.kelas}</td>
-                      <td className="text-small">{row.dosen}</td>
-                      <td className="text-center">{row.pertemuanTerlaksana}</td>
-                      <td className="text-center">
-                        <span
-                          className="attendance-badge"
-                          style={{
-                            backgroundColor: getKehadiranColor(row.kehadiran),
-                            padding: '4px 12px',
-                            borderRadius: '4px',
-                            color: 'white',
-                            fontWeight: '600',
-                            fontSize: '14px',
-                          }}
-                        >
-                          {row.kehadiran}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-
-          <Card variant="info">
-            <p style={{ margin: '0' }}>
-              📌 <strong>Informasi:</strong> Kehadiran minimum untuk lulus adalah 75%. Silakan hubungi dosen jika ada ketidaksesuaian data.
-            </p>
-          </Card>
-        </main>
-      </div>
-    </div>
+      <Card variant="info">
+        <p style={{ margin: '0' }}>
+          📌 <strong>Informasi:</strong> Kehadiran minimum untuk lulus adalah 75%. Silakan hubungi dosen jika ada ketidaksesuaian data.
+        </p>
+      </Card>
+    </>
   )
 }
