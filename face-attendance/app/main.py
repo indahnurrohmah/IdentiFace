@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 
@@ -7,6 +8,20 @@ from app.database import get_connection
 from app.location_service import validate_location
 
 app = FastAPI()
+
+allowed_origins = [
+    "http://localhost:3000",     
+    "http://localhost:5173",      
+    "http://127.0.0.1:3000",      
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],   
+    allow_headers=["*"],     
+)
 
 UPLOAD_FOLDER = "stored-faces"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
