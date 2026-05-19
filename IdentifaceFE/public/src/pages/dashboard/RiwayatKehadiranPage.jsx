@@ -1,119 +1,127 @@
 import { useState } from 'react'
-import Card from '../../components/ui/Card'
+import { useNavigate } from 'react-router-dom'
 
 export default function RiwayatKehadiranPage() {
+  const navigate = useNavigate()
   const [selectedSemester, setSelectedSemester] = useState('Semester Genap 2025/2026')
 
   const attendanceData = [
-    {
-      id: 1,
-      mataKuliah: 'Proyek Senior Teknologi Informasi',
-      kode: 'TIF213241',
-      sks: 7,
-      kelas: 'B',
-      dosen: 'Syukron Abu Ishaq Alfarozi, S.T., Ph.D, Adkario Risky Pratama, S.T., M.Eng., Ph.D., Dr. Gusmur Dharma Putra, S.T., M.Sc.',
-      pertemuanTerlaksana: 8,
-      kehadiran: '88%',
-    },
-    {
-      id: 2,
-      mataKuliah: 'Proyek Perancangan Teknologi Informasi 1',
-      kode: 'TIF213241',
-      sks: 4,
-      kelas: 'A',
-      dosen: 'Syukron Abu Ishaq Alfarozi, S.T., Ph.D, Adkario Risky Pratama, S.T., M.Eng., Ph.D., Dr. Gusmur Dharma Putra, S.T., M.Sc.',
-      pertemuanTerlaksana: 7,
-      kehadiran: '78%',
-    },
-    {
-      id: 3,
-      mataKuliah: 'Keamanan Komputer',
-      kode: 'TIF213241',
-      sks: 2,
-      kelas: 'C',
-      dosen: 'Syukron Abu Ishaq Alfarozi, S.T., Ph.D, Adkario Risky Pratama, S.T., M.Eng., Ph.D., Dr. Gusmur Dharma Putra, S.T., M.Sc.',
-      pertemuanTerlaksana: 5,
-      kehadiran: '53%',
-    },
+    ['Proyek Senior Teknologi Informasi', 'TIF213241', 7, 'B', 'Syukron Abu Ishaq Alfarozi, S.T., Ph.D. Adkario Risky Pratama, S.T., M.Eng., Ph.D. Dr. Guntur Dharma Putra, S.T., M.Sc.', 8, '88%'],
+    ['Proyek Perancangan Teknologi Informasi 1', 'TIF213241', 4, 'A', 'Syukron Abu Ishaq Alfarozi, S.T., Ph.D. Adkario Risky Pratama, S.T., M.Eng., Ph.D. Dr. Guntur Dharma Putra, S.T., M.Sc.', 7, '78%'],
+    ['Keamanan Komputer', 'TIF213241', 2, 'C', 'Syukron Abu Ishaq Alfarozi, S.T., Ph.D. Adkario Risky Pratama, S.T., M.Eng., Ph.D. Dr. Guntur Dharma Putra, S.T., M.Sc.', 5, '53%'],
   ]
 
-  const getKehadiranColor = (kehadiran) => {
-    const nilai = parseInt(kehadiran)
-    if (nilai >= 80) return '#4CAF50'
-    if (nilai >= 60) return '#FFC107'
-    return '#F44336'
-  }
-
   return (
-    <>
-      <section className="riwayat-header">
-        <div>
-          <h1>Riwayat Presensi</h1>
-          <p className="dashboard-date">29/12345656/SA321 - {selectedSemester}</p>
+    <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
+      <header className="flex items-center justify-between px-10 py-5">
+        <div className="flex items-center gap-3">
+          <div className="w-14 h-14 rounded-full bg-[#123B5D] text-white flex items-center justify-center font-bold">
+            IF
+          </div>
+          <h1 className="text-3xl font-bold">IdentiFace</h1>
         </div>
-        <select
-          value={selectedSemester}
-          onChange={(e) => setSelectedSemester(e.target.value)}
-          className="semester-selector"
-        >
-          <option>Semester Genap 2025/2026</option>
-          <option>Semester Ganjil 2024/2025</option>
-          <option>Semester Genap 2024/2025</option>
-        </select>
-      </section>
 
-      <Card variant="section">
-        <div className="table-responsive">
-          <table className="attendance-table">
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Mata Kuliah</th>
-                <th>Kode</th>
-                <th>SKS</th>
-                <th>Kelas</th>
-                <th>Dosen</th>
-                <th>Pertemuan Terlaksana</th>
-                <th>Kehadiran</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attendanceData.map((row, index) => (
-                <tr key={row.id}>
-                  <td className="text-center">{index + 1}</td>
-                  <td>{row.mataKuliah}</td>
-                  <td className="text-center">{row.kode}</td>
-                  <td className="text-center">{row.sks}</td>
-                  <td className="text-center">{row.kelas}</td>
-                  <td className="text-small">{row.dosen}</td>
-                  <td className="text-center">{row.pertemuanTerlaksana}</td>
-                  <td className="text-center">
-                    <span
-                      className="attendance-badge"
-                      style={{
-                        backgroundColor: getKehadiranColor(row.kehadiran),
-                        padding: '4px 12px',
-                        borderRadius: '4px',
-                        color: 'white',
-                        fontWeight: '600',
-                        fontSize: '14px',
-                      }}
-                    >
-                      {row.kehadiran}
-                    </span>
-                  </td>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold">Bambang Pamungkas</h2>
+          <div className="w-12 h-12 rounded-full border-4 border-[#123B5D]" />
+        </div>
+      </header>
+
+      <main className="flex-1 px-10 pb-10 flex gap-8">
+        <aside className="w-64 bg-[#6BAAAF] rounded-lg shadow-md px-5 py-7 flex flex-col">
+          <h2 className="text-center text-xl font-bold mb-6">Menu Mahasiswa</h2>
+
+          <nav className="space-y-3">
+            <button
+              onClick={() => navigate('/student/dashboard')}
+              className="w-full h-10 rounded border border-white text-black font-semibold"
+            >
+              Dashboard
+            </button>
+
+            <button
+              onClick={() => navigate('/student/scan')}
+              className="w-full h-10 rounded border border-white text-black font-semibold"
+            >
+              Scan Wajah
+            </button>
+
+            <button className="w-full h-10 rounded bg-[#123B5D] text-white font-semibold">
+              Riwayat Presensi
+            </button>
+          </nav>
+
+          <button
+            onClick={() => navigate('/')}
+            className="mt-auto w-full h-10 rounded bg-[#B82410] text-white font-semibold"
+          >
+            Keluar
+          </button>
+        </aside>
+
+        <section className="flex-1">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-3xl font-bold">Riwayat Presensi</h1>
+              <p className="text-sm text-gray-600 mt-2">
+                29/12345656/SA321 - {selectedSemester}
+              </p>
+            </div>
+
+            <select
+              value={selectedSemester}
+              onChange={(e) => setSelectedSemester(e.target.value)}
+              className="h-10 border border-[#6BAAAF] rounded px-4 bg-white text-sm"
+            >
+              <option>Semester Genap 2025/2026</option>
+              <option>Semester Ganjil 2024/2025</option>
+              <option>Semester Genap 2024/2025</option>
+            </select>
+          </div>
+
+          <div className="bg-[#EFE6D3] border border-[#123B5D] rounded-lg shadow-md p-4 min-h-[430px]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-500">
+                  <th className="text-left py-3 px-2">No</th>
+                  <th className="text-left py-3 px-2">Mata Kuliah</th>
+                  <th className="text-left py-3 px-2">Kode</th>
+                  <th className="text-left py-3 px-2">SKS</th>
+                  <th className="text-left py-3 px-2">Kelas</th>
+                  <th className="text-left py-3 px-2">Dosen</th>
+                  <th className="text-left py-3 px-2">Pertemuan Terlaksana</th>
+                  <th className="text-left py-3 px-2">Kehadiran</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+              </thead>
 
-      <Card variant="info">
-        <p style={{ margin: '0' }}>
-          📌 <strong>Informasi:</strong> Kehadiran minimum untuk lulus adalah 75%. Silakan hubungi dosen jika ada ketidaksesuaian data.
-        </p>
-      </Card>
-    </>
+              <tbody>
+                {attendanceData.map((row, index) => (
+                  <tr key={index} className="align-top">
+                    <td className="py-5 px-2">{index + 1}</td>
+                    <td className="py-5 px-2 font-medium">{row[0]}</td>
+                    <td className="py-5 px-2">{row[1]}</td>
+                    <td className="py-5 px-2">{row[2]}</td>
+                    <td className="py-5 px-2">{row[3]}</td>
+                    <td className="py-5 px-2 max-w-[280px]">{row[4]}</td>
+                    <td className="py-5 px-2 text-center">{row[5]}</td>
+                    <td className="py-5 px-2 font-semibold">{row[6]}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+
+      <footer className="bg-[#74B5BD] py-5 text-center">
+        <div className="flex justify-center items-center gap-2 mb-2">
+          <div className="w-8 h-8 rounded-full bg-[#123B5D] text-white flex items-center justify-center text-xs">
+            IF
+          </div>
+          <span className="font-semibold">IdentiFace</span>
+        </div>
+        <p className="font-semibold">Privacy Policy | Terms of Service</p>
+      </footer>
+    </div>
   )
 }

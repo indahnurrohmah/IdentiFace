@@ -75,11 +75,9 @@ export default function App() {
         <Route path="/login" element={<Login />} />
 
         {/* Student Routes */}
-        <Route path="/student" element={<StudentLayout />}>
-          <Route path="dashboard" element={<StudentDashboard />} />
-          <Route path="scan" element={<ScanWajahPage />} />
-          <Route path="riwayat" element={<RiwayatKehadiranPage />} />
-        </Route>
+          <Route path="/student/dashboard" element={<StudentDashboard />} />
+          <Route path="/student/scan" element={<ScanWajahPage />} />
+          <Route path="/student/riwayat" element={<RiwayatKehadiranPage />} />
 
         {/* Dosen Routes */}
         <Route path="/dosen/dashboard" element={<DosenDashboard />} />
