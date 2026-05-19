@@ -7,6 +7,7 @@ import RiwayatKehadiranPage from './pages/dashboard/RiwayatKehadiranPage'
 import DosenDashboard from './pages/dashboard/DosenDashboard'
 import SchedulePage from './pages/dashboard/SchedulePage'
 import MonitorKehadiranPage from './pages/dashboard/MonitorKehadiranPage'
+import LaporanPresensiPage from './pages/dashboard/LaporanPresensiPage'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -38,6 +39,7 @@ function HomePage() {
             onMouseEnter={(e) => (e.target.style.background = '#5a9499')}
             onMouseLeave={(e) => (e.target.style.background = '#6BAAAF')}
           >
+          
              Login sebagai Mahasiswa
           </button>
           <button
@@ -57,6 +59,26 @@ function HomePage() {
             onMouseLeave={(e) => (e.target.style.background = '#133951')}
           >
              Login sebagai Dosen
+          </button>
+
+          <button
+            onClick={() => navigate('/student/dashboard')}
+            style={{
+              padding: '16px 32px',
+              fontSize: '1rem',
+              fontWeight: '600',
+              background: '#6BAAAF',
+              color: '#ffffff',
+              border: 'none',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => (e.target.style.background = '#5a9499')}
+            onMouseLeave={(e) => (e.target.style.background = '#6BAAAF')}
+          >
+          
+            Login sebagai Admin
           </button>
         </div>
       </div>
@@ -83,6 +105,9 @@ export default function App() {
         <Route path="/dosen/dashboard" element={<DosenDashboard />} />
         <Route path="/dosen/schedule" element={<SchedulePage />} />
         <Route path="/dosen/monitor" element={<MonitorKehadiranPage />} />
+
+        {/* Admin Routes */}
+        <Route path="/admin/presensi" element={<LaporanPresensiPage />} />
         
         {/* Redirect unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />

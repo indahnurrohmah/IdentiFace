@@ -5,8 +5,9 @@ export default function Login() {
   const navigate = useNavigate()
 
   const [form, setForm] = useState({
-    username: '',
-    password: '',
+  username: '',
+  password: '',
+  role: 'dosen',
   })
 
   const [loading, setLoading] = useState(false)
@@ -24,9 +25,16 @@ export default function Login() {
     setLoading(true)
 
     setTimeout(() => {
-      setLoading(false)
+  setLoading(false)
+
+    if (form.role === 'admin') {
+      navigate('/admin/presensi')
+    } else if (form.role === 'mahasiswa') {
+      navigate('/student/dashboard')
+    } else {
       navigate('/dosen/dashboard')
-    }, 1000)
+    }
+  }, 1000)
   }
 
   const handleGoogleSignIn = () => {
@@ -79,7 +87,7 @@ export default function Login() {
               />
             </div>
 
-            <div>
+                        <div>
               <label className="block mb-2 font-semibold">
                 Password
               </label>
@@ -91,6 +99,23 @@ export default function Login() {
                 onChange={handleChange}
                 className="w-full h-12 border border-slate-400 rounded-md px-4"
               />
+            </div>
+
+            <div>
+              <label className="block mb-2 font-semibold">
+                Masuk Sebagai
+              </label>
+
+              <select
+                name="role"
+                value={form.role}
+                onChange={handleChange}
+                className="w-full h-12 border border-slate-400 rounded-md px-4 bg-white"
+              >
+                <option value="dosen">Dosen</option>
+                <option value="mahasiswa">Mahasiswa</option>
+                <option value="admin">Admin</option>
+              </select>
             </div>
 
             <a href="#" className="text-sm underline">
