@@ -15,7 +15,7 @@ function HomePage() {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#EDE2CD' }}>
       <div style={{ textAlign: 'center', padding: '40px' }}>
-        <div style={{ fontSize: '3.5rem', marginBottom: '20px' }}>👤</div>
+        <div style={{ fontSize: '3.5rem', marginBottom: '20px' }}> </div>
         <h1 style={{ fontSize: '2rem', fontFamily: 'Montserrat', color: '#133951', marginBottom: '8px' }}>
           IdentiFace
         </h1>
@@ -29,7 +29,7 @@ function HomePage() {
               padding: '16px 32px',
               fontSize: '1rem',
               fontWeight: '600',
-              background: '#6BAAAF',
+              background: '#AD2810',
               color: '#ffffff',
               border: 'none',
               borderRadius: '12px',
@@ -37,7 +37,7 @@ function HomePage() {
               transition: 'all 0.2s ease',
             }}
             onMouseEnter={(e) => (e.target.style.background = '#5a9499')}
-            onMouseLeave={(e) => (e.target.style.background = '#6BAAAF')}
+            onMouseLeave={(e) => (e.target.style.background = '#AD2810')}
           >
           
              Login sebagai Mahasiswa
