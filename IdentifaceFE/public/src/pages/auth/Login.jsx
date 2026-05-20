@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import logo from '../../assets/logo.png'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -46,13 +47,12 @@ export default function Login() {
 
       <header className="flex items-center justify-between px-10 py-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-[#123B5D] flex items-center justify-center text-white font-bold">
-            IF
-          </div>
+          <img
+            src={logo}
+            alt="IdentiFace Logo"
+            className="w-40 h-auto object-contain"
+          />
 
-          <h1 className="text-3xl font-bold">
-            IdentiFace
-          </h1>
         </div>
 
         <button
@@ -159,13 +159,12 @@ export default function Login() {
 
       <footer className="bg-[#74B5BD] py-6 text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="w-8 h-8 rounded-full bg-[#123B5D] flex items-center justify-center text-white text-sm font-bold">
-            IF
-          </div>
+          <img
+            src={logo}
+            alt="IdentiFace Logo"
+            className="w-40 h-auto object-contain"
+          />
 
-          <span className="font-semibold text-lg">
-            IdentiFace
-          </span>
         </div>
 
         <p className="font-medium">

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import logo from '../../assets/logo.png'
 
 export default function StudentDashboard() {
   const navigate = useNavigate()
@@ -7,10 +8,11 @@ export default function StudentDashboard() {
     <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
       <header className="flex items-center justify-between px-10 py-5">
         <div className="flex items-center gap-3">
-          <div className="w-14 h-14 rounded-full bg-[#123B5D] text-white flex items-center justify-center font-bold">
-            IF
-          </div>
-          <h1 className="text-3xl font-bold">IdentiFace</h1>
+          <img
+            src={logo}
+            alt="IdentiFace Logo"
+            className="w-40 h-auto object-contain"
+          />
         </div>
 
         <div className="flex items-center gap-4">
@@ -82,12 +84,16 @@ export default function StudentDashboard() {
 
       <footer className="bg-[#74B5BD] py-5 text-center">
         <div className="flex justify-center items-center gap-2 mb-2">
-          <div className="w-8 h-8 rounded-full bg-[#123B5D] text-white flex items-center justify-center text-xs">
-            IF
+          <img
+            src={logo}
+            alt="IdentiFace Logo"
+            className="w-40 h-auto object-contain"
+            />
           </div>
-          <span className="font-semibold">IdentiFace</span>
-        </div>
-        <p className="font-semibold">Privacy Policy | Terms of Service</p>
+          
+        <p className="font-semibold">
+          Privacy Policy | Terms of Service
+        </p>
       </footer>
     </div>
   )
