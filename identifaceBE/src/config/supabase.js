@@ -1,23 +1,21 @@
 require('dotenv').config();
-const { Pool } = require('pg');
+const { createClient } = require('@supabase/supabase-js');
 
-// Initialize the direct connection pool
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+// Kita mengambil URL dan API Key dari environment variables
+const supabaseUrl = process.env.SUPABASE_URL;
+// Gunakan Service Role Key agar Node.js memiliki hak akses penuh (bypass RLS) untuk upload file
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; 
+
+if (!supabaseUrl || !supabaseKey) {
+    console.warn('⚠️ Peringatan: SUPABASE_URL atau SUPABASE_SERVICE_ROLE_KEY belum diatur di file .env!');
+}
+
+// Inisialisasi client Supabase
+const supabaseClient = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+        autoRefreshToken: false,
+        persistSession: false // Matikan session karena kita hanya pakai ini untuk Storage, bukan Auth
+    }
 });
 
-// Immediately test the direct connection and log it to the console
-(async () => {
-    try {
-        // We attempt to connect a client from the pool
-        const client = await pool.connect();
-        console.log('✅ Successfully connected to Supabase via Direct PostgreSQL Connection!');
-        
-        // Always release the client back to the pool when done testing
-        client.release();
-    } catch (err) {
-        console.error('❌ Failed to connect directly to Supabase:', err.message);
-    }
-})();
-
-module.exports = pool;
+module.exports = supabaseClient;

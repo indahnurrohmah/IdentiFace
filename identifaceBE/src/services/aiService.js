@@ -56,23 +56,29 @@ const registerFace = async (nim, filePath) => {
 };
 
 /**
- * Verify a face against a registered NIM.
+ * Verify a face against the database, including GPS validation.
  * Used during attendance scanning.
  *
- * @param {string} nim - Student NIM
  * @param {string} filePath - Absolute path to the uploaded image on disk
+ * @param {number} latitude - User's current latitude
+ * @param {number} longitude - User's current longitude
  * @returns {Promise<{ success: boolean, message: string, confidence?: number, raw: object }>}
  */
-const verifyFace = async (nim, filePath) => {
+const verifyFace = async (filePath, latitude, longitude) => {
     const form = new FormData();
     form.append('file', fs.createReadStream(filePath), {
         filename: path.basename(filePath),
         contentType: _getMimeType(filePath)
     });
+    
+    // Add the required GPS coordinates to the form data
+    form.append('latitude', latitude.toString());
+    form.append('longitude', longitude.toString());
 
     try {
+        // Note: The FastAPI endpoint is just /verify-face, it doesn't take NIM in the URL
         const response = await aiClient.post(
-            `/verify-face/${nim}`,
+            `/verify-face`,
             form,
             {
                 headers: {
@@ -83,12 +89,14 @@ const verifyFace = async (nim, filePath) => {
         );
 
         const data = response.data;
-        const isMatch = data.status === 'ok' || data.match === true;
+        // The Python API returns { match: True/False, status: "...", pesan: "..." }
+        const isMatch = data.match === true;
 
         return {
             success: isMatch,
             message: data.pesan || (isMatch ? 'Wajah terverifikasi.' : 'Wajah tidak cocok.'),
-            confidence: data.confidence || null,
+            similarity: data.similarity || null, // The API returns 'similarity', not 'confidence'
+            nim: data.nim || null, // If matched, the API returns the identified NIM
             raw: data
         };
     } catch (err) {

@@ -1,46 +1,57 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
-const pool = require('../config/supabase'); // Your direct PostgreSQL connection pool
+const authRepository = require('../repositories/authRepository');
+const studentRepository = require('../repositories/studentRepository');
 
-// --- EMAIL CONFIGURATION ---
-// This sets up the service that will send the OTP emails
+// ==========================================
+// EMAIL CONFIGURATION
+// ==========================================
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS // Use a Gmail App Password, not your normal password
+        pass: process.env.EMAIL_PASS 
     }
 });
 
-// --- 1. REGISTER FUNCTION ---
-const register = async (req, res) => {
-    const { email, password, role } = req.body;
-
-    // Security Check 1: Enforce UGM institutional emails only
-    if (!email.endsWith('@ugm.ac.id') && !email.endsWith('@mail.ugm.ac.id')) {
-        return res.status(403).json({ error: 'Hanya email institusi UGM yang diizinkan.' });
-    }
-
+/**
+ * Register a new user account and send OTP
+ * Endpoint: POST /api/auth/register
+ */
+const register = async (req, res, next) => {
     try {
-        // Automatically generates a salt and hashes the password securely
+        const { email, password, role, nim, nama_lengkap, prodi, angkatan } = req.body;
+
+        // 1. Security Check: Enforce UGM institutional emails only
+        if (!email.endsWith('@ugm.ac.id') && !email.endsWith('@mail.ugm.ac.id')) {
+            return res.status(403).json({ success: false, message: 'Hanya email institusi UGM yang diizinkan.', error: null });
+        }
+
+        // 2. Check if email already exists proactively
+        const existingUser = await authRepository.findByEmail(email);
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: 'Email tersebut sudah terdaftar.', error: null });
+        }
+
+        // 3. Hash password securely
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Generate a 6-digit OTP (One Time Password)
+        // 4. Generate a 6-digit OTP and set 15 minutes expiration
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        
-        // Calculate expiration time (15 minutes from exactly right now)
         const tokenExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-        // Save the new user to the database as unverified
-        const result = await pool.query(
-            `INSERT INTO akun (email, password, role, verification_token, token_expires_at) 
-             VALUES ($1, $2, $3, $4, $5) RETURNING id_akun, email, role`,
-            [email, hashedPassword, role, otpCode, tokenExpiresAt]
-        );
+        // 5. Save the new unverified user to the database via repository
+        const newAccount = await authRepository.createAccount({
+            email,
+            password: hashedPassword,
+            role,
+            verificationToken: otpCode,
+            tokenExpiresAt
+        });
 
-        // Send the OTP to the user's email
+        // 6. Send the OTP to the user's email
         await transporter.sendMail({
             from: process.env.EMAIL_USER,
             to: email,
@@ -54,94 +65,121 @@ const register = async (req, res) => {
                 </div>
             `
         });
+        
+        // 7. Store temporary profile data for students (Optional advancement)
+        // Note: For best practice, we hold off creating the student profile until OTP is verified.
+        // The frontend should pass nim, nama_lengkap, etc., again during the verify-email step.
 
-        res.status(201).json({ message: 'Registrasi berhasil! Silakan cek email Anda untuk kode verifikasi.' });
+        res.status(201).json({
+            success: true,
+            message: 'Registrasi berhasil! Silakan cek email Anda untuk kode verifikasi.',
+            data: { email: newAccount.email, role: newAccount.role }
+        });
     } catch (error) {
-        // Postgres error code 23505 means unique violation (email already exists)
+        // Fallback for Postgres unique constraint violation
         if (error.code === '23505') {
-            return res.status(400).json({ error: 'Email tersebut sudah terdaftar.' });
+            return res.status(400).json({ success: false, message: 'Email tersebut sudah terdaftar.', error: null });
         }
-        console.error('Registration Error:', error);
-        res.status(500).json({ error: 'Terjadi kesalahan pada server saat registrasi.' });
+        next(error);
     }
 };
 
-// --- 2. VERIFY OTP FUNCTION ---
-const verifyEmail = async (req, res) => {
-    const { email, code } = req.body; 
-
+/**
+ * Verify user email using OTP and finalize profile creation
+ * Endpoint: POST /api/auth/verify-email
+ */
+const verifyEmail = async (req, res, next) => {
     try {
-        // Find the specific user trying to verify
-        const result = await pool.query('SELECT * FROM akun WHERE email = $1', [email]);
-        const user = result.rows[0];
+        const { email, code, nim, nama_lengkap, prodi, angkatan } = req.body; 
 
-        if (!user) {
-            return res.status(404).json({ error: 'Pengguna tidak ditemukan.' });
+        // 1. Find the specific user
+        const account = await authRepository.findByEmail(email);
+        if (!account) {
+            return res.status(404).json({ success: false, message: 'Pengguna tidak ditemukan.', error: null });
         }
 
-        // Check if they are already verified
-        if (user.is_verified) {
-            return res.status(400).json({ error: 'Akun ini sudah terverifikasi.' });
+        // 2. Check if they are already verified
+        if (account.is_verified) {
+            return res.status(400).json({ success: false, message: 'Akun ini sudah terverifikasi.', error: null });
         }
 
-        // Security Check 2: Does the code match?
-        if (user.verification_token !== code) {
-            return res.status(400).json({ error: 'Kode verifikasi salah.' });
+        // 3. Security Check: Does the code match?
+        if (account.verification_token !== code) {
+            return res.status(400).json({ success: false, message: 'Kode verifikasi salah.', error: null });
         }
 
-        // Security Check 3: Is the time right now past the expiration time?
-        if (new Date() > new Date(user.token_expires_at)) {
-            return res.status(400).json({ error: 'Kode verifikasi sudah kedaluwarsa. Silakan minta kode baru.' });
+        // 4. Security Check: Is the token expired?
+        if (new Date() > new Date(account.token_expires_at)) {
+            return res.status(400).json({ success: false, message: 'Kode verifikasi sudah kedaluwarsa. Silakan minta kode baru.', error: null });
         }
 
-        // Success! Update the user's status and delete the used OTP
-        await pool.query(
-            'UPDATE akun SET is_verified = TRUE, verification_token = NULL, token_expires_at = NULL WHERE email = $1',
-            [email]
-        );
+        // 5. Update the user's status and delete the used OTP in DB
+        const verifiedAccount = await authRepository.verifyAccount(email);
 
-        res.json({ message: 'Verifikasi berhasil! Akun Anda kini aktif dan siap digunakan.' });
+        // 6. Advancement: Automatically create student profile after successful verification
+        if (verifiedAccount.role === 'mahasiswa') {
+            // Check if profile already exists to prevent duplicate key errors
+            const existingStudent = await studentRepository.findByIdAkun(verifiedAccount.id_akun);
+            if (!existingStudent && nim && nama_lengkap) {
+                await studentRepository.create({
+                    id_akun: verifiedAccount.id_akun,
+                    nim,
+                    nama_lengkap,
+                    prodi,
+                    angkatan
+                });
+            }
+        }
+
+        res.json({
+            success: true, 
+            message: 'Verifikasi berhasil! Akun Anda kini aktif dan siap digunakan.',
+            data: { email: verifiedAccount.email }
+        });
     } catch (error) {
-        console.error('Verification Error:', error);
-        res.status(500).json({ error: 'Terjadi kesalahan pada server saat verifikasi.' });
+        next(error);
     }
 };
 
-// --- 3. LOGIN FUNCTION ---
-const login = async (req, res) => {
-    const { email, password } = req.body;
-
+/**
+ * Login user and generate JWT token
+ * Endpoint: POST /api/auth/login
+ */
+const login = async (req, res, next) => {
     try {
-        // Find the user by email
-        const result = await pool.query('SELECT * FROM akun WHERE email = $1', [email]);
-        const user = result.rows[0];
+        const { email, password } = req.body;
 
-        if (!user) {
-            return res.status(401).json({ error: 'Email atau password salah.' });
+        // 1. Find the user by email
+        const account = await authRepository.findByEmail(email);
+        if (!account) {
+            return res.status(401).json({ success: false, message: 'Email atau password salah.', error: null });
         }
 
-        // Security Check 4: Block login if the account hasn't been verified with an OTP
-        if (!user.is_verified) {
-            return res.status(403).json({ error: 'Akun belum diverifikasi. Silakan masukkan kode OTP Anda.' });
+        // 2. Security Check: Block login if unverified
+        if (!account.is_verified) {
+            return res.status(403).json({ success: false, message: 'Akun belum diverifikasi. Silakan masukkan kode OTP Anda.', error: null });
         }
 
-        // Compare the submitted password with the hashed password in the database
-        const isMatch = await bcrypt.compare(password, user.password);
+        // 3. Compare the passwords
+        const isMatch = await bcrypt.compare(password, account.password);
         if (!isMatch) {
-            return res.status(401).json({ error: 'Email atau password salah.' });
+            return res.status(401).json({ success: false, message: 'Email atau password salah.', error: null });
         }
 
-        // Generate the JWT token (The digital "ticket" for accessing protected routes)
+        // 4. Generate the JWT token (8 hours expiration as per original code)
         const token = jwt.sign(
-            { id_akun: user.id_akun, role: user.role },
+            { id_akun: account.id_akun, role: account.role, email: account.email },
             process.env.JWT_SECRET,
-            { expiresIn: '8h' } // Token automatically expires after 8 hours
+            { expiresIn: '8h' } 
         );
 
-        res.json({ message: 'Login berhasil', token, role: user.role });
+        res.json({
+            success: true,
+            message: 'Login berhasil.',
+            data: { token, role: account.role }
+        });
     } catch (error) {
-        console.error('Login Error:', error);
-        res.status(500).json({ error: 'Terjadi kesalahan pada server saat login.' });
+        next(error);
     }
 };
 

@@ -1,4 +1,4 @@
-const pool = require('../config/supabase');
+const pool = require('../config/db'); // Adjusted to use the pg pool connection
 
 /**
  * Get active sesi (ongoing presensi) for a given kelas
@@ -43,7 +43,7 @@ const findActiveSesiForMahasiswa = async (nim) => {
  */
 const findByNimAndSesi = async (nim, id_sesi) => {
     const result = await pool.query(
-        'SELECT * FROM attendance WHERE nim = $1 AND id_sesi = $2',
+        'SELECT * FROM presensi WHERE nim = $1 AND id_sesi = $2',
         [nim, id_sesi]
     );
     return result.rows[0] || null;
@@ -51,25 +51,25 @@ const findByNimAndSesi = async (nim, id_sesi) => {
 
 /**
  * Insert or update attendance record
+ * NOTE: Ensure you have a UNIQUE(id_sesi, nim) constraint on the presensi table!
  */
-const upsertAttendance = async ({ id_sesi, nim, status, waktu_scan, foto_scan_url }) => {
+const upsertAttendance = async ({ id_sesi, nim, status, waktu_scan, similarity, latitude, longitude }) => {
     const result = await pool.query(
-        `INSERT INTO attendance (id_sesi, nim, status, waktu_scan, foto_scan_url)
-         VALUES ($1, $2, $3, $4, $5)
+        `INSERT INTO presensi (id_sesi, nim, status, waktu_scan, similarity, latitude, longitude)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
          ON CONFLICT (id_sesi, nim) DO UPDATE
-         SET status = $3, waktu_scan = $4, foto_scan_url = $5
+         SET status = $3, waktu_scan = $4, similarity = $5, latitude = $6, longitude = $7
          RETURNING *`,
-        [id_sesi, nim, status, waktu_scan, foto_scan_url]
+        [id_sesi, nim, status, waktu_scan, similarity, latitude, longitude]
     );
     return result.rows[0];
 };
 
 /**
- * Get attendance history for a mahasiswa
- * with optional filters
+ * Get attendance history for a mahasiswa with optional filters
  */
 const getHistoryByNim = async (nim, { id_mk, from_date, to_date, limit = 50, offset = 0 } = {}) => {
-    const conditions = ['a.nim = $1'];
+    const conditions = ['p.nim = $1'];
     const values = [nim];
     let idx = 2;
 
@@ -93,8 +93,8 @@ const getHistoryByNim = async (nim, { id_mk, from_date, to_date, limit = 50, off
 
     const countResult = await pool.query(
         `SELECT COUNT(*)
-         FROM attendance a
-         JOIN sesi_kelas s ON s.id_sesi = a.id_sesi
+         FROM presensi p
+         JOIN sesi_kelas s ON s.id_sesi = p.id_sesi
          JOIN kelas k ON k.id_kelas = s.id_kelas
          ${where}`,
         values
@@ -103,9 +103,9 @@ const getHistoryByNim = async (nim, { id_mk, from_date, to_date, limit = 50, off
     values.push(limit, offset);
     const result = await pool.query(
         `SELECT
-           a.id_attendance,
-           a.status,
-           a.waktu_scan,
+           p.id_presensi,
+           p.status,
+           p.waktu_scan,
            s.tanggal,
            s.waktu_mulai,
            s.waktu_selesai,
@@ -113,8 +113,8 @@ const getHistoryByNim = async (nim, { id_mk, from_date, to_date, limit = 50, off
            mk.nama_mk,
            mk.sks,
            d.nama AS nama_dosen
-         FROM attendance a
-         JOIN sesi_kelas s ON s.id_sesi = a.id_sesi
+         FROM presensi p
+         JOIN sesi_kelas s ON s.id_sesi = p.id_sesi
          JOIN kelas k ON k.id_kelas = s.id_kelas
          JOIN mata_kuliah mk ON mk.id_mk = k.id_mk
          JOIN dosen d ON d.id_dosen = k.id_dosen
@@ -138,15 +138,15 @@ const getSummaryByNim = async (nim) => {
         `SELECT
            mk.nama_mk,
            mk.kode_mk,
-           COUNT(a.id_attendance) FILTER (WHERE a.status = 'hadir') AS hadir,
-           COUNT(a.id_attendance) FILTER (WHERE a.status = 'izin')  AS izin,
-           COUNT(a.id_attendance) FILTER (WHERE a.status = 'alpha') AS alpha,
+           COUNT(p.id_presensi) FILTER (WHERE p.status = 'hadir') AS hadir,
+           COUNT(p.id_presensi) FILTER (WHERE p.status = 'izin')  AS izin,
+           COUNT(p.id_presensi) FILTER (WHERE p.status = 'alpha') AS alpha,
            COUNT(s.id_sesi) AS total_sesi
          FROM kelas_mahasiswa km
          JOIN kelas k ON k.id_kelas = km.id_kelas
          JOIN mata_kuliah mk ON mk.id_mk = k.id_mk
          JOIN sesi_kelas s ON s.id_kelas = k.id_kelas
-         LEFT JOIN attendance a ON a.id_sesi = s.id_sesi AND a.nim = km.nim
+         LEFT JOIN presensi p ON p.id_sesi = s.id_sesi AND p.nim = km.nim
          WHERE km.nim = $1
          GROUP BY mk.id_mk, mk.nama_mk, mk.kode_mk
          ORDER BY mk.nama_mk`,
@@ -156,8 +156,7 @@ const getSummaryByNim = async (nim) => {
 };
 
 /**
- * Get attendance report for admin
- * with filters: prodi, angkatan, id_mk, from_date, to_date
+ * Get attendance report for admin with filters
  */
 const getAdminReport = async ({ prodi, angkatan, id_mk, from_date, to_date, limit = 100, offset = 0 } = {}) => {
     const conditions = [];
@@ -199,7 +198,7 @@ const getAdminReport = async ({ prodi, angkatan, id_mk, from_date, to_date, limi
          JOIN kelas k ON k.id_kelas = km.id_kelas
          JOIN mata_kuliah mk ON mk.id_mk = k.id_mk
          JOIN sesi_kelas s ON s.id_kelas = k.id_kelas
-         LEFT JOIN attendance a ON a.id_sesi = s.id_sesi AND a.nim = m.nim
+         LEFT JOIN presensi p ON p.id_sesi = s.id_sesi AND p.nim = m.nim
          ${where}`,
         values
     );
@@ -208,14 +207,14 @@ const getAdminReport = async ({ prodi, angkatan, id_mk, from_date, to_date, limi
     const result = await pool.query(
         `SELECT
            m.nim,
-           m.nama,
+           m.nama_lengkap AS nama,
            m.prodi,
            m.angkatan,
            mk.kode_mk,
            mk.nama_mk,
            s.tanggal,
-           a.status,
-           a.waktu_scan,
+           p.status,
+           p.waktu_scan,
            d.nama AS nama_dosen
          FROM mahasiswa m
          JOIN kelas_mahasiswa km ON km.nim = m.nim
@@ -223,9 +222,9 @@ const getAdminReport = async ({ prodi, angkatan, id_mk, from_date, to_date, limi
          JOIN mata_kuliah mk ON mk.id_mk = k.id_mk
          JOIN dosen d ON d.id_dosen = k.id_dosen
          JOIN sesi_kelas s ON s.id_kelas = k.id_kelas
-         LEFT JOIN attendance a ON a.id_sesi = s.id_sesi AND a.nim = m.nim
+         LEFT JOIN presensi p ON p.id_sesi = s.id_sesi AND p.nim = m.nim
          ${where}
-         ORDER BY s.tanggal DESC, m.nama ASC
+         ORDER BY s.tanggal DESC, m.nama_lengkap ASC
          LIMIT $${idx} OFFSET $${idx + 1}`,
         values
     );
@@ -262,17 +261,17 @@ const getAdminSummary = async ({ prodi, angkatan, id_mk } = {}) => {
     const result = await pool.query(
         `SELECT
            m.nim,
-           m.nama,
+           m.nama_lengkap AS nama,
            m.prodi,
            m.angkatan,
            mk.kode_mk,
            mk.nama_mk,
            COUNT(s.id_sesi) AS total_pertemuan,
-           COUNT(a.id_attendance) FILTER (WHERE a.status = 'hadir') AS hadir,
-           COUNT(a.id_attendance) FILTER (WHERE a.status = 'izin')  AS izin,
-           COUNT(s.id_sesi) - COUNT(a.id_attendance) FILTER (WHERE a.status IN ('hadir','izin')) AS alpha,
+           COUNT(p.id_presensi) FILTER (WHERE p.status = 'hadir') AS hadir,
+           COUNT(p.id_presensi) FILTER (WHERE p.status = 'izin')  AS izin,
+           COUNT(s.id_sesi) - COUNT(p.id_presensi) FILTER (WHERE p.status IN ('hadir','izin')) AS alpha,
            ROUND(
-             COUNT(a.id_attendance) FILTER (WHERE a.status = 'hadir') * 100.0
+             COUNT(p.id_presensi) FILTER (WHERE p.status = 'hadir') * 100.0
              / NULLIF(COUNT(s.id_sesi), 0), 1
            ) AS persentase_kehadiran
          FROM mahasiswa m
@@ -280,14 +279,43 @@ const getAdminSummary = async ({ prodi, angkatan, id_mk } = {}) => {
          JOIN kelas k ON k.id_kelas = km.id_kelas
          JOIN mata_kuliah mk ON mk.id_mk = k.id_mk
          JOIN sesi_kelas s ON s.id_kelas = k.id_kelas
-         LEFT JOIN attendance a ON a.id_sesi = s.id_sesi AND a.nim = m.nim
+         LEFT JOIN presensi p ON p.id_sesi = s.id_sesi AND p.nim = m.nim
          ${where}
-         GROUP BY m.nim, m.nama, m.prodi, m.angkatan, mk.id_mk, mk.kode_mk, mk.nama_mk
-         ORDER BY m.angkatan DESC, m.nama ASC, mk.nama_mk ASC`,
+         GROUP BY m.nim, m.nama_lengkap, m.prodi, m.angkatan, mk.id_mk, mk.kode_mk, mk.nama_mk
+         ORDER BY m.angkatan DESC, m.nama_lengkap ASC, mk.nama_mk ASC`,
         values
     );
 
     return result.rows;
+};
+
+/**
+ * Get live attendance list for a specific session
+ */
+const getLiveAttendanceBySesi = async (id_sesi) => {
+    const query = `
+        SELECT m.nim, m.nama_lengkap AS nama, p.status, p.waktu_scan, p.similarity
+        FROM presensi p
+        JOIN mahasiswa m ON p.nim = m.nim
+        WHERE p.id_sesi = $1
+        ORDER BY p.waktu_scan DESC
+    `;
+    const result = await pool.query(query, [id_sesi]);
+    return result.rows;
+};
+
+/**
+ * Update attendance status manually by Admin
+ */
+const updateAttendanceStatus = async (id_presensi, { status, bukti_url }) => {
+    const result = await pool.query(
+        `UPDATE presensi 
+         SET status = $1, bukti_url = $2, updated_at = NOW() 
+         WHERE id_presensi = $3 
+         RETURNING *`,
+        [status, bukti_url, id_presensi]
+    );
+    return result.rows[0] || null;
 };
 
 module.exports = {
@@ -298,5 +326,7 @@ module.exports = {
     getHistoryByNim,
     getSummaryByNim,
     getAdminReport,
-    getAdminSummary
+    getAdminSummary,
+    getLiveAttendanceBySesi,
+    updateAttendanceStatus
 };

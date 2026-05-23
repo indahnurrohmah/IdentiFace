@@ -1,20 +1,26 @@
 const express = require('express');
-const rateLimit = require('express-rate-limit');
-const { register, login, verifyEmail } = require('../controllers/authController');
+const { register, verifyEmail, login } = require('../controllers/authController');
+const { otpLimiter } = require('../middleware/rateLimiter'); 
 
 const router = express.Router();
 
-// Create a rate limiter for the OTP verification endpoint
-const otpLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Limit each IP to 5 requests per windowMs
-    message: { error: 'Terlalu banyak percobaan yang salah. Silakan coba lagi setelah 15 menit.' }
-});
-
+/**
+ * Register a new user account and send OTP
+ * Endpoint: POST /api/auth/register
+ */
 router.post('/register', register);
+
+/**
+ * Login user and generate JWT token
+ * Endpoint: POST /api/auth/login
+ */
 router.post('/login', login);
 
-// Apply the limiter ONLY to the verify route
+/**
+ * Verify user email using OTP and finalize profile creation
+ * Endpoint: POST /api/auth/verify-email
+ */
+// Terapkan otpLimiter khusus di sini agar kebal dari serangan brute-force (tebak-tebak OTP)
 router.post('/verify-email', otpLimiter, verifyEmail);
 
 module.exports = router;
