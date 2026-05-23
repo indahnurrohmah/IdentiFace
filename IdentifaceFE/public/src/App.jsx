@@ -8,6 +8,7 @@ import DosenDashboard from './pages/dashboard/DosenDashboard'
 import SchedulePage from './pages/dashboard/SchedulePage'
 import MonitorKehadiranPage from './pages/dashboard/MonitorKehadiranPage'
 import LaporanPresensiPage from './pages/dashboard/LaporanPresensiPage'
+import DataWajahPage from './pages/dashboard/DataWajahPage'
 
 function HomePage() {
   const navigate = useNavigate()
@@ -90,8 +91,7 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        {/* Home - Role Selection */}
-        <Route path="/" element={<HomePage />} />
+        <Route path="/" element={<Login />} />
 
         {/* Login Page */}
         <Route path="/login" element={<Login />} />
@@ -108,6 +108,7 @@ export default function App() {
 
         {/* Admin Routes */}
         <Route path="/admin/presensi" element={<LaporanPresensiPage />} />
+        <Route path="/admin/data-wajah" element={<DataWajahPage />} />
         
         {/* Redirect unknown routes to home */}
         <Route path="*" element={<Navigate to="/" replace />} />

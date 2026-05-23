@@ -55,13 +55,6 @@ export default function Login() {
 
         </div>
 
-        <button
-          type="button"
-          onClick={() => navigate('/')}
-          className="bg-[#123B5D] text-white px-8 py-3 rounded-xl font-semibold"
-        >
-          Beranda
-        </button>
       </header>
 
       <main className="flex-1 flex items-center justify-center pb-16">

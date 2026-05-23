@@ -1,357 +1,278 @@
 import { useState } from 'react'
-import Navbar from '../../components/layout/Navbar'
-import Sidebar from '../../components/layout/Sidebar'
-import Card from '../../components/ui/Card'
-import Button from '../../components/ui/Button'
+import { useNavigate } from 'react-router-dom'
+import logo from '../../assets/logo.png'
 
 export default function DataWajahPage() {
-  const [activeMenu, setActiveMenu] = useState('wajah')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedPeran, setSelectedPeran] = useState('semua')
-  const [selectedProdi, setSelectedProdi] = useState('semua')
-  const [selectedStatus, setSelectedStatus] = useState('semua')
-
-  // Modal state
-  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
-  const [selectedRowData, setSelectedRowData] = useState(null)
-  const [uploadedPhoto, setUploadedPhoto] = useState(null)
-  const [currentStep, setCurrentStep] = useState('upload')
-
-  const peranList = ['Semua Peran', 'Mahasiswa', 'Dosen']
-  const prodiList = ['Semua Prodi', 'Teknik Informatika', 'Sistem Informasi', 'Teknologi Informasi']
-  const statusList = ['Semua Status', 'Terdaftar', 'Belum Terdaftar']
-
-  const dataWajahStats = [
-    {
-      label: 'Total Data',
-      value: 3,
-      icon: '👤',
-    },
-    {
-      label: 'Terdaftar',
-      value: 2,
-      icon: '📷',
-    },
-    {
-      label: 'Belum Terdaftar',
-      value: 1,
-      icon: '📷',
-    },
-  ]
+  const navigate = useNavigate()
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedRow, setSelectedRow] = useState(null)
+  const [selectedFile, setSelectedFile] = useState(null)
+  const [cameraOn, setCameraOn] = useState(false)
+  const [videoRef, setVideoRef] = useState(null)
 
   const dataWajahTable = [
-    {
-      id: 1,
-      nama: 'Harmda Allah',
-      nim: '29/2134656/TK/12345',
-      prodi: 'Teknologi Informasi',
-      peran: 'Mahasiswa',
-      status: 'Terdaftar',
-      updateTerakhir: '2024-12-01',
-    },
-    {
-      id: 2,
-      nama: 'Harmda Allah',
-      nim: '29/2134656/TK/12345',
-      prodi: 'Teknologi Informasi',
-      peran: 'Mahasiswa',
-      status: 'Belum Terdaftar',
-      updateTerakhir: '2024-12-01',
-    },
-    {
-      id: 3,
-      nama: 'Harmda Allah',
-      nim: '29/2134656/TK/12345',
-      prodi: 'Teknologi Informasi',
-      peran: 'Dosen',
-      status: 'Terdaftar',
-      updateTerakhir: '2024-12-01',
-    },
+    ['Hamba Allah', '29/123456/TK/12345', 'Teknologi Informasi', 'Mahasiswa', 'Terdaftar', '2024-12-01'],
+    ['Hamba Allah', '29/123456/TK/12345', 'Teknologi Informasi', 'Mahasiswa', 'Belum', '2024-12-01'],
+    ['Hamba Allah', '29/123456/TK/12345', 'Teknologi Informasi', 'Dosen', 'Terdaftar', '2024-12-01'],
   ]
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Terdaftar':
-        return '#4CAF50'
-      case 'Belum Terdaftar':
-        return '#FFC107'
-      default:
-        return '#6BAAAF'
+  const statusClass = {
+    Terdaftar: 'bg-green-300',
+    Belum: 'bg-red-300',
+  }
+
+  const startCamera = async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+
+    if (videoRef) {
+      videoRef.srcObject = stream
+      videoRef.play()
     }
-  }
 
-  const getStatusBgColor = (status) => {
-    switch (status) {
-      case 'Terdaftar':
-        return '#d1fae5'
-      case 'Belum Terdaftar':
-        return '#fef3c7'
-      default:
-        return '#e0f2f1'
-    }
-  }
-
-  const handleRefresh = () => {
-    console.log('Refresh data wajah')
-  }
-
-  const openUpdateModal = (row) => {
-    setSelectedRowData(row)
-    setUploadedPhoto(null)
-    setCurrentStep('upload')
-    setIsUpdateModalOpen(true)
-  }
-
-  const closeUpdateModal = () => {
-    setIsUpdateModalOpen(false)
-    setSelectedRowData(null)
-    setUploadedPhoto(null)
-    setCurrentStep('upload')
-  }
-
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        setUploadedPhoto(event.target?.result)
-        setCurrentStep('deteksi')
+    setCameraOn(true)
+      } catch (error) {
+        alert('Kamera tidak bisa dibuka')
+        console.error(error)
       }
-      reader.readAsDataURL(file)
     }
-  }
-
-  const handleCameraCapture = () => {
-    // TODO: Implement camera functionality
-    console.log('Open camera')
-  }
-
-  const handleSaveUpdate = () => {
-    console.log('Save update dengan foto:', uploadedPhoto)
-    closeUpdateModal()
-  }
-
-  const goToStep = (step) => {
-    setCurrentStep(step)
-  }
 
   return (
-    <div className="admin-layout">
-      <Navbar userName="Ahmad Nasikun" />
+    <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
+      <header className="flex items-center justify-between px-10 py-5">
+        <img src={logo} alt="IdentiFace Logo" className="w-40 h-auto object-contain" />
 
-      <div className="admin-container">
-        <Sidebar activeMenu={activeMenu} isAdmin={true} />
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold">Username</h2>
+          <div className="w-12 h-12 rounded-full border-4 border-[#123B5D]" />
+        </div>
+      </header>
 
-        <main className="admin-content">
-          <section className="report-header">
-            <div>
-              <h1>Data Wajah</h1>
-              <p className="report-subtitle">Kelola data face recognition mahasiswa & dosen</p>
-            </div>
-            <button className="btn-refresh" onClick={handleRefresh}>
-              🔄 Refresh
+      <main className="flex-1 px-10 pb-10 flex gap-8">
+        <aside className="w-64 bg-[#6BAAAF] rounded-lg shadow-md px-5 py-7 flex flex-col">
+          <h2 className="text-center text-xl font-bold mb-6">Menu Admin</h2>
+
+          <nav className="space-y-3">
+            <button
+              onClick={() => navigate('/admin/presensi')}
+              className="w-full h-10 rounded border border-white text-black font-semibold"
+            >
+              Laporan Presensi
             </button>
-          </section>
 
-          {/* Stats Cards */}
-          <div className="stats-grid-small">
-            {dataWajahStats.map((stat, idx) => (
-              <div key={idx} className="stat-card-small">
-                <div className="stat-icon-small">{stat.icon}</div>
-                <div className="stat-content-small">
-                  <p className="stat-label-small">{stat.label}</p>
-                  <p className="stat-value-small">{stat.value}</p>
-                </div>
+            <button className="w-full h-10 rounded bg-[#123B5D] text-white font-semibold">
+              Daftar Wajah
+            </button>
+          </nav>
+
+          <button
+            onClick={() => navigate('/')}
+            className="mt-auto w-full h-10 rounded bg-[#B82410] text-white font-semibold"
+          >
+            Keluar
+          </button>
+        </aside>
+
+        <section className="flex-1">
+          <div className="flex items-start justify-between mb-5">
+            <div>
+              <h1 className="text-3xl font-bold">Data Wajah</h1>
+              <p className="text-sm text-gray-600">
+                Kelola data face recognition mahasiswa & dosen
+              </p>
+            </div>
+
+            <button className="bg-[#123B5D] text-white px-6 py-2 rounded font-semibold">
+              Refresh
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-5 mb-5">
+            {[
+              ['3', 'Total Data'],
+              ['2', 'Terdaftar'],
+              ['1', 'Belum Terdaftar'],
+            ].map(([value, label]) => (
+              <div
+                key={label}
+                className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-lg shadow-md px-6 py-4"
+              >
+                <h2 className="text-3xl font-bold">{value}</h2>
+                <p className="text-sm text-gray-600">{label}</p>
               </div>
             ))}
           </div>
 
-          <Card variant="section">
-            {/* Filter Section */}
-            <div className="filter-section">
-              <div className="search-box">
-                <input
-                  type="text"
-                  placeholder="Cari nama atau NIM"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="search-input"
-                />
-              </div>
+          <div className="bg-[#EFE6D3] border border-[#123B5D] rounded-lg shadow-md p-3 mb-5">
+            <div className="grid grid-cols-4 gap-4">
+              <input
+                placeholder="Cari nama atau NIM..."
+                className="h-8 rounded px-3 text-sm border border-[#6BAAAF]"
+              />
 
-              <div className="filter-controls">
-                <select
-                  value={selectedPeran}
-                  onChange={(e) => setSelectedPeran(e.target.value)}
-                  className="filter-select"
-                >
-                  {peranList.map((peran, idx) => (
-                    <option key={idx} value={peran}>
-                      {peran}
-                    </option>
-                  ))}
-                </select>
+              <select className="h-8 rounded px-3 text-sm border border-[#6BAAAF]">
+                <option>Semua Peran</option>
+                <option>Mahasiswa</option>
+                <option>Dosen</option>
+              </select>
 
-                <select
-                  value={selectedProdi}
-                  onChange={(e) => setSelectedProdi(e.target.value)}
-                  className="filter-select"
-                >
-                  {prodiList.map((prodi, idx) => (
-                    <option key={idx} value={prodi}>
-                      {prodi}
-                    </option>
-                  ))}
-                </select>
+              <select className="h-8 rounded px-3 text-sm border border-[#6BAAAF]">
+                <option>Semua Prodi</option>
+              </select>
 
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="filter-select"
-                >
-                  {statusList.map((status, idx) => (
-                    <option key={idx} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <select className="h-8 rounded px-3 text-sm border border-[#6BAAAF]">
+                <option>Semua Status</option>
+                <option>Terdaftar</option>
+                <option>Belum Terdaftar</option>
+              </select>
             </div>
+          </div>
 
-            {/* Table */}
-            <div className="table-responsive">
-              <table className="report-table">
-                <thead>
-                  <tr>
-                    <th>Nama</th>
-                    <th>NIM</th>
-                    <th>Prodi</th>
-                    <th>Peran</th>
-                    <th>Status</th>
-                    <th>Update Terakhir</th>
-                    <th>Aksi</th>
+          <div className="bg-[#EFE6D3] border border-[#123B5D] rounded-lg shadow-md p-4 min-h-[360px]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-500">
+                  <th className="text-left py-3">Nama</th>
+                  <th className="text-left py-3">NIM</th>
+                  <th className="text-left py-3">Prodi</th>
+                  <th className="text-left py-3">Peran</th>
+                  <th className="text-left py-3">Status</th>
+                  <th className="text-left py-3">Update Terakhir</th>
+                  <th className="text-left py-3">Aksi</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {dataWajahTable.map((row, index) => (
+                  <tr key={index}>
+                    <td className="py-3">{row[0]}</td>
+                    <td className="py-3">{row[1]}</td>
+                    <td className="py-3">{row[2]}</td>
+                    <td className="py-3">
+                      <span className="px-3 py-1 rounded-full border border-[#6BAAAF] text-xs">
+                        {row[3]}
+                      </span>
+                    </td>
+                    <td className="py-3">
+                      <span className={`${statusClass[row[4]]} px-3 py-1 rounded text-xs font-semibold`}>
+                        {row[4]}
+                      </span>
+                    </td>
+                    <td className="py-3">{row[5]}</td>
+                    <td className="py-3">
+                      <button
+                        onClick={() => {
+                          setSelectedRow(row)
+                          setIsModalOpen(true)
+                        }}
+                        className="mr-2 text-[#123B5D] font-semibold"
+                      >
+                        Update
+                      </button>
+                      <button className="text-red-500 font-bold">🗑</button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {dataWajahTable.map((row) => (
-                    <tr key={row.id}>
-                      <td>{row.nama}</td>
-                      <td className="nim-text">{row.nim}</td>
-                      <td>{row.prodi}</td>
-                      <td>{row.peran}</td>
-                      <td>
-                        <span
-                          className="status-badge"
-                          style={{
-                            backgroundColor: getStatusBgColor(row.status),
-                            color: getStatusColor(row.status),
-                          }}
-                        >
-                          {row.status}
-                        </span>
-                      </td>
-                      <td>{row.updateTerakhir}</td>
-                      <td className="aksi-cell">
-                        <div className="aksi-buttons">
-                          <button
-                            className="aksi-btn update-btn"
-                            title="Update"
-                            onClick={() => openUpdateModal(row)}
-                          >
-                            ✏️
-                          </button>
-                          <button className="aksi-btn delete-btn" title="Hapus">
-                            🗑️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </Card>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
 
-          {/* Update Modal */}
-          {isUpdateModalOpen && selectedRowData && (
-            <div className="modal-overlay" onClick={closeUpdateModal}>
-              <div className="modal-content modal-wajah" onClick={(e) => e.stopPropagation()}>
-                <h2 className="modal-title-wajah">
-                  👤 Update Data Wajah
-                </h2>
+      {isModalOpen && selectedRow && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-[#EFE6D3] w-[560px] rounded-2xl border border-[#123B5D] shadow-lg p-7">
+            <h2 className="text-2xl font-bold mb-1">
+              Update Data Wajah
+            </h2>
 
-                <div className="modal-student-info-wajah">
-                  <p>
-                    <strong>{selectedRowData.nama}</strong> — {selectedRowData.nim}
+            <p className="text-sm font-semibold mb-5">
+              {selectedRow[0]} — {selectedRow[1]}
+            </p>
+
+            <div className="bg-white rounded-2xl h-60 flex flex-col items-center justify-center relative mb-4">
+              <div className="absolute top-5 left-5 w-10 h-10 border-t-2 border-l-2 border-[#123B5D] rounded-tl-xl"></div>
+              <div className="absolute top-5 right-5 w-10 h-10 border-t-2 border-r-2 border-[#123B5D] rounded-tr-xl"></div>
+              <div className="absolute bottom-5 left-5 w-10 h-10 border-b-2 border-l-2 border-[#123B5D] rounded-bl-xl"></div>
+              <div className="absolute bottom-5 right-5 w-10 h-10 border-b-2 border-r-2 border-[#123B5D] rounded-br-xl"></div>
+
+              {cameraOn ? (
+                <video
+                  ref={(ref) => setVideoRef(ref)}
+                  autoPlay
+                  className="w-full h-full object-cover rounded-2xl"
+                />
+              ) : (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-3xl mb-3">
+                    👤
+                  </div>
+
+                  <p className="text-sm font-semibold">
+                    Upload foto atau ambil langsung untuk memulai scan
                   </p>
-                </div>
-
-                {/* Steps */}
-                <div className="wajah-steps">
-                  <div className={`step ${currentStep === 'upload' ? 'active' : ''}`}>
-                    <span className="step-number">1</span>
-                    <span className="step-label">Upload</span>
-                  </div>
-                  <div className={`step ${currentStep === 'deteksi' ? 'active' : ''}`}>
-                    <span className="step-number">2</span>
-                    <span className="step-label">Deteksi</span>
-                  </div>
-                  <div className={`step ${currentStep === 'mapping' ? 'active' : ''}`}>
-                    <span className="step-number">3</span>
-                    <span className="step-label">Mapping</span>
-                  </div>
-                  <div className={`step ${currentStep === 'seleksi' ? 'active' : ''}`}>
-                    <span className="step-number">4</span>
-                    <span className="step-label">Seleksi</span>
-                  </div>
-                </div>
-
-                {/* Upload Area */}
-                <div className="wajah-upload-area">
-                  {uploadedPhoto ? (
-                    <>
-                      <img src={uploadedPhoto} alt="Uploaded" className="wajah-preview" />
-                      <p className="wajah-upload-text">Foto berhasil diunggah</p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="wajah-camera-icon">📷</div>
-                      <p className="wajah-upload-text">Upload foto atau ambil langsung untuk memulai scan</p>
-                    </>
-                  )}
-                </div>
-
-                {/* Upload Buttons */}
-                <div className="wajah-buttons-group">
-                  <label htmlFor="wajah-file-input" className="btn-upload-foto">
-                    ⬇️ Upload Foto
-                  </label>
-                  <input
-                    id="wajah-file-input"
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    style={{ display: 'none' }}
-                  />
-                  <button className="btn-buka-kamera" onClick={handleCameraCapture}>
-                    📷 Buka Kamera
-                  </button>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="modal-actions-wajah">
-                  <button className="btn-cancel-wajah" onClick={closeUpdateModal}>
-                    Cancel
-                  </button>
-                  <button className="btn-save-wajah" onClick={handleSaveUpdate} disabled={!uploadedPhoto}>
-                    Save
-                  </button>
-                </div>
-              </div>
+                </>
+              )}
             </div>
-          )}
-        </main>
-      </div>
+
+            <div className="grid grid-cols-4 gap-2 mb-4 text-xs font-semibold text-center">
+              <div className="bg-[#EFE6D3] rounded-full py-1">Upload</div>
+              <div className="bg-[#EFE6D3] rounded-full py-1">Deteksi</div>
+              <div className="bg-[#EFE6D3] rounded-full py-1">Mapping</div>
+              <div className="bg-[#EFE6D3] rounded-full py-1">Selesai</div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+              <label className="bg-yellow-400 border border-[#123B5D] rounded-lg py-2 font-semibold text-center cursor-pointer">
+                Upload Foto
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => setSelectedFile(e.target.files[0])}
+                />
+              </label>
+
+              <button
+                onClick={startCamera}
+                className="bg-[#6BAAAF] border border-[#123B5D] rounded-lg py-2 font-semibold"
+              >
+                Buka Kamera
+              </button>
+            </div>
+
+            {selectedFile && (
+              <p className="text-sm text-center mt-2">
+                File dipilih: <strong>{selectedFile.name}</strong>
+              </p>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-2 rounded border border-[#123B5D] bg-white font-semibold"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-6 py-2 rounded bg-[#123B5D] text-white font-semibold"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <footer className="bg-[#74B5BD] py-5 text-center">
+        <div className="flex justify-center items-center gap-2 mb-2">
+          <img src={logo} alt="IdentiFace Logo" className="w-24 h-auto object-contain" />
+        </div>
+        <p className="font-semibold">Privacy Policy | Terms of Service</p>
+      </footer>
     </div>
   )
 }
