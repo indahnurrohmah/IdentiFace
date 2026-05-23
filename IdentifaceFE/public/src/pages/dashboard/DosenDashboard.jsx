@@ -1,18 +1,20 @@
-import { useNavigate } from 'react-router-dom'
-import logo from '../../assets/logo.png'
+import { useNavigate } from "react-router-dom";
+import logo from "../../assets/logo.png";
+import { MdOutlineClass } from "react-icons/md";
+import { LuUsers, LuUserRoundCheck, LuUserRoundX } from "react-icons/lu";
 
 export default function DosenDashboard() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
       <header className="flex items-center justify-between px-10 py-5">
         <div className="flex items-center gap-3">
-         <img
-          src={logo}
-          alt="IdentiFace Logo"
-          className="w-40 h-auto object-contain"
-        />
+          <img
+            src={logo}
+            alt="IdentiFace Logo"
+            className="w-40 h-auto object-contain"
+          />
         </div>
 
         <div className="flex items-center gap-4">
@@ -30,13 +32,13 @@ export default function DosenDashboard() {
               Dashboard
             </button>
             <button
-              onClick={() => navigate('/dosen/schedule')}
+              onClick={() => navigate("/dosen/schedule")}
               className="w-full h-10 rounded border border-white text-black font-semibold"
             >
               Jadwal Sesi
             </button>
             <button
-              onClick={() => navigate('/dosen/monitor')}
+              onClick={() => navigate("/dosen/monitor")}
               className="w-full h-10 rounded border border-white text-black font-semibold"
             >
               Monitor Kehadiran
@@ -44,10 +46,10 @@ export default function DosenDashboard() {
           </nav>
 
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="mt-auto w-full h-10 rounded bg-[#B82410] text-white font-semibold"
           >
-           Keluar
+            Keluar
           </button>
         </aside>
 
@@ -59,23 +61,41 @@ export default function DosenDashboard() {
             </p>
           </div>
 
-          <div className="grid grid-cols-4 gap-5 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-8">
             {[
-              ['Sesi Hari ini', '3'],
-              ['Total Mahasiswa', '50'],
-              ['Kehadiran', '80%'],
-              ['Tidak Hadir', '3'],
-            ].map(([title, value]) => (
+              {
+                title: "Sesi Hari ini",
+                value: "3",
+                icon: <MdOutlineClass size={64} />,
+              },
+              {
+                title: "Total Mahasiswa",
+                value: "50",
+                icon: <LuUsers size={64} />,
+              },
+              {
+                title: "Kehadiran",
+                value: "80%",
+                icon: <LuUserRoundCheck size={64} />,
+              },
+              {
+                title: "Tidak Hadir",
+                value: "3",
+                icon: <LuUserRoundX size={64} />,
+              },
+            ].map(({ title, value, icon }) => (
               <div
                 key={title}
-                className="bg-[#6BAAAF] rounded shadow-md px-5 py-4 h-24"
+                className="bg-[#6BAAAF] rounded-2xl shadow-md px-5 py-4 h-24 relative overflow-hidden"
               >
-                <p className="font-semibold">{title}</p>
-                <h2 className="text-4xl font-bold text-center mt-2">{value}</h2>
+                <div className="absolute -right-3 -bottom-3 text-white opacity-20">
+                  {icon}
+                </div>
+                <p className="text-sm font-semibold text-white">{title}</p>
+                <h2 className="text-4xl font-bold text-white mt-1">{value}</h2>
               </div>
             ))}
           </div>
-
           <div className="grid grid-cols-2 gap-6">
             <DashboardPanel title="Sesi Perkuliahan Hari Ini" />
             <ActivityPanel />
@@ -91,13 +111,11 @@ export default function DosenDashboard() {
             className="w-40 h-auto object-contain"
           />
 
-          <p className="font-semibold">
-            Privacy Policy | Terms of Service
-          </p>
+          <p className="font-semibold">Privacy Policy | Terms of Service</p>
         </div>
       </footer>
     </div>
-  )
+  );
 }
 
 function DashboardPanel({ title }) {
@@ -124,14 +142,14 @@ function DashboardPanel({ title }) {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function ActivityPanel() {
   const data = [
-    ['Budi Pekerti', 'Hadir', 'bg-green-300'],
-    ['Anissa', 'Tidak Hadir', 'bg-red-300'],
-  ]
+    ["Budi Pekerti", "Hadir", "bg-green-300"],
+    ["Anissa", "Tidak Hadir", "bg-red-300"],
+  ];
 
   return (
     <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-lg shadow-md p-4 min-h-[320px]">
@@ -149,12 +167,14 @@ function ActivityPanel() {
               <p className="text-xs text-gray-600">07.30 - 10.00 WIB</p>
             </div>
 
-            <span className={`${color} px-4 py-1 rounded text-xs font-semibold`}>
+            <span
+              className={`${color} px-4 py-1 rounded text-xs font-semibold`}
+            >
               {status}
             </span>
           </div>
         </div>
       ))}
     </div>
-  )
+  );
 }

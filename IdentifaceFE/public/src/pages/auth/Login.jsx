@@ -1,50 +1,51 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import logo from '../../assets/logo.png'
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import logo from "../../assets/logo.png";
 
 export default function Login() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
+  const location = useLocation();
+  const initialRole = location.state?.role || "dosen";
 
   const [form, setForm] = useState({
-  username: '',
-  password: '',
-  role: 'dosen',
-  })
+    username: "",
+    password: "",
+    role: initialRole,
+  });
 
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({
       ...form,
       [e.target.name]: e.target.value,
-    })
-  }
+    });
+  };
 
   const handleSubmit = (e) => {
-    e.preventDefault()
+    e.preventDefault();
 
-    setLoading(true)
+    setLoading(true);
 
     setTimeout(() => {
-  setLoading(false)
+      setLoading(false);
 
-    if (form.role === 'admin') {
-      navigate('/admin/presensi')
-    } else if (form.role === 'mahasiswa') {
-      navigate('/student/dashboard')
-    } else {
-      navigate('/dosen/dashboard')
-    }
-  }, 1000)
-  }
+      if (form.role === "admin") {
+        navigate("/admin/presensi");
+      } else if (form.role === "mahasiswa") {
+        navigate("/student/dashboard");
+      } else {
+        navigate("/dosen/dashboard");
+      }
+    }, 1000);
+  };
 
   const handleGoogleSignIn = () => {
-    alert('Google Login')
-  }
+    alert("Google Login");
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
-
       <header className="flex items-center justify-between px-10 py-6">
         <div className="flex items-center gap-3">
           <img
@@ -52,24 +53,16 @@ export default function Login() {
             alt="IdentiFace Logo"
             className="w-40 h-auto object-contain"
           />
-
         </div>
-
       </header>
 
       <main className="flex-1 flex items-center justify-center pb-16">
         <div className="w-full max-w-md bg-white rounded-[28px] shadow-md px-10 py-9">
-
-          <h2 className="text-3xl font-bold text-center mb-10">
-            Login Form
-          </h2>
+          <h2 className="text-3xl font-bold text-center mb-10">Login Form</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-
             <div>
-              <label className="block mb-2 font-semibold">
-                Username
-              </label>
+              <label className="block mb-2 font-semibold">Username</label>
 
               <input
                 type="text"
@@ -80,10 +73,8 @@ export default function Login() {
               />
             </div>
 
-                        <div>
-              <label className="block mb-2 font-semibold">
-                Password
-              </label>
+            <div>
+              <label className="block mb-2 font-semibold">Password</label>
 
               <input
                 type="password"
@@ -95,9 +86,7 @@ export default function Login() {
             </div>
 
             <div>
-              <label className="block mb-2 font-semibold">
-                Masuk Sebagai
-              </label>
+              <label className="block mb-2 font-semibold">Masuk Sebagai</label>
 
               <select
                 name="role"
@@ -119,7 +108,7 @@ export default function Login() {
               type="submit"
               className="w-full h-12 bg-[#123B5D] text-white rounded-md font-semibold"
             >
-              {loading ? 'Loading...' : 'Masuk'}
+              {loading ? "Loading..." : "Masuk"}
             </button>
           </form>
 
@@ -134,15 +123,12 @@ export default function Login() {
             onClick={handleGoogleSignIn}
             className="w-full h-12 border border-gray-300 rounded-md flex items-center justify-center gap-3 font-medium"
           >
-            <span className="text-xl font-bold text-red-500">
-              G
-            </span>
-
+            <span className="text-xl font-bold text-red-500">G</span>
             Masuk dengan Google
           </button>
 
           <p className="text-center mt-8 text-sm">
-            Belum Punya Akun?{' '}
+            Belum Punya Akun?{" "}
             <a href="#" className="text-blue-600 underline">
               Hubungi Administrator
             </a>
@@ -157,13 +143,10 @@ export default function Login() {
             alt="IdentiFace Logo"
             className="w-40 h-auto object-contain"
           />
-
         </div>
 
-        <p className="font-medium">
-          Privacy Policy | Terms of Service
-        </p>
+        <p className="font-medium">Privacy Policy | Terms of Service</p>
       </footer>
     </div>
-  )
+  );
 }

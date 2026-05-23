@@ -1,31 +1,56 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import logo from '../../assets/logo.png'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import logo from "../../assets/logo.png";
+import {
+  LuUserRoundCheck,
+  LuUserRoundX,
+  LuUserRoundSearch,
+} from "react-icons/lu";
+import { MdOutlineSick } from "react-icons/md";
 
 export default function MonitorPage() {
-  const navigate = useNavigate()
-  const [selectedStudents, setSelectedStudents] = useState({})
+  const navigate = useNavigate();
+  const [selectedStudents, setSelectedStudents] = useState({});
 
   const summaryStats = [
-    { label: 'Hadir', value: '50', className: 'bg-green-300' },
-    { label: 'Terlambat', value: '4', className: 'bg-yellow-300' },
-    { label: 'Tidak Hadir', value: '0', className: 'bg-red-300' },
-    { label: 'Izin/Sakit', value: '3', className: 'bg-[#6BAAAF]' },
-  ]
-
+    {
+      label: "Hadir",
+      value: "50",
+      className: "bg-green-400",
+      icon: <LuUserRoundCheck size={64} />,
+    },
+    {
+      label: "Terlambat",
+      value: "4",
+      className: "bg-yellow-400",
+      icon: <LuUserRoundSearch size={64} />,
+    },
+    {
+      label: "Tidak Hadir",
+      value: "0",
+      className: "bg-red-400",
+      icon: <LuUserRoundX size={64} />,
+    },
+    {
+      label: "Izin/Sakit",
+      value: "3",
+      className: "bg-[#6BAAAF]",
+      icon: <MdOutlineSick size={64} />,
+    },
+  ];
   const studentData = Array(4).fill({
-    nama: 'Annisaa',
-    tanggal: '16/03/2026',
-    waktu: '08:30 WIB',
-    status: 'Hadir',
-  })
+    nama: "Annisaa",
+    tanggal: "16/03/2026",
+    waktu: "08:30 WIB",
+    status: "Hadir",
+  });
 
   const handleCheckboxChange = (id) => {
     setSelectedStudents((prev) => ({
       ...prev,
       [id]: !prev[id],
-    }))
-  }
+    }));
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
@@ -50,14 +75,14 @@ export default function MonitorPage() {
 
           <nav className="space-y-3">
             <button
-              onClick={() => navigate('/dosen/dashboard')}
+              onClick={() => navigate("/dosen/dashboard")}
               className="w-full h-10 rounded border border-white text-black font-semibold"
             >
               Dashboard
             </button>
 
             <button
-              onClick={() => navigate('/dosen/schedule')}
+              onClick={() => navigate("/dosen/schedule")}
               className="w-full h-10 rounded border border-white text-black font-semibold"
             >
               Jadwal Sesi
@@ -69,7 +94,7 @@ export default function MonitorPage() {
           </nav>
 
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="mt-auto w-full h-10 rounded bg-[#B82410] text-white font-semibold"
           >
             Keluar
@@ -90,14 +115,17 @@ export default function MonitorPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-4 gap-5 mb-8">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-5 mb-8">
             {summaryStats.map((stat) => (
               <div
                 key={stat.label}
-                className={`${stat.className} rounded-lg shadow-md px-5 py-5 h-28`}
+                className={`${stat.className} rounded-2xl shadow-md px-5 py-4 h-24 relative overflow-hidden`}
               >
-                <p className="font-semibold text-center">{stat.label}</p>
-                <h2 className="text-4xl font-bold text-center mt-4">
+                <div className="absolute -right-3 -bottom-3 text-white opacity-20">
+                  {stat.icon}
+                </div>
+                <p className="text-sm font-semibold text-white">{stat.label}</p>
+                <h2 className="text-4xl font-bold text-white mt-1">
                   {stat.value}
                 </h2>
               </div>
@@ -176,11 +204,9 @@ export default function MonitorPage() {
             className="w-40 h-auto object-contain"
           />
         </div>
-          
-        <p className="font-semibold">
-          Privacy Policy | Terms of Service
-        </p>
+
+        <p className="font-semibold">Privacy Policy | Terms of Service</p>
       </footer>
     </div>
-  )
+  );
 }
