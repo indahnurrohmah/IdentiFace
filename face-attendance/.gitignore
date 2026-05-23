@@ -1,21 +1,83 @@
-# Virtual Environment
-venv/
-
-# Python cache
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+*.pyd
 *.pyo
 
-# Environment variables (rahasia! password DB, API key, dll)
+# Virtual Environment
+venv/
+env/
+.venv/
+.env_backup
+
+# Environment Variables (JANGAN di-commit!)
 .env
+.env.local
+.env.production
+.env.*.local
 
-# Foto yang diupload user
-stored-faces/
+# Distribution / Packaging
+dist/
+build/
+*.egg-info/
+*.egg
+wheels/
 
-# IDE
+# Pytest / Testing
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Type Checking
+.mypy_cache/
+.dmypy.json
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# IDEs & Editors
 .vscode/
 .idea/
+*.sublime-project
+*.sublime-workspace
 
-# OS
+# OS Files
 .DS_Store
 Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Face data & model files (bisa besar & sensitif)
+face_data/
+known_faces/
+embeddings/
+*.pkl
+*.pickle
+*.dat
+
+# Uploaded images / temporary captures
+uploads/
+temp/
+captured_faces/
+*.jpg
+*.jpeg
+*.png
+*.mp4
+*.avi
+
+# Attendance exports (generated, bukan source)
+exports/
+reports/
+attendance_*.csv
+attendance_*.xlsx
