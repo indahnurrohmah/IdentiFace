@@ -1,0 +1,11 @@
+{
+  "name": "identiface",
+  "version": "1.0.0",
+  "description": "IdentiFace - Facial Recognition Attendance System",
+  "private": true,
+  "scripts": {
+    "dev": "cd IdentifaceFE && npm run dev",
+    "build": "cd IdentifaceFE && npm run build",
+    "preview": "cd IdentifaceFE && npm run preview"
+  }
+}
