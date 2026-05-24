@@ -1,28 +1,27 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import logo from '../../assets/logo.png'
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import logo from "../../assets/logo.png";
 
 export default function SchedulePage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
   const [filters, setFilters] = useState({
-    mataKuliah: '',
-    kelas: '',
-    tanggalAwal: '',
-    tanggalAkhir: '',
-  })
+    mataKuliah: "",
+    kelas: "",
+    tanggalAwal: "",
+    tanggalAkhir: "",
+  });
 
   const scheduleData = Array(4).fill({
-    mataKuliah: 'Pemrograman Dasar',
-    kelas: 'TI - 3',
-    tanggal: '10/03/2026',
-    waktu: '07.30 - 10.00 WIB',
-    ruangan: 'Ruangan 204',
-  })
+    mataKuliah: "Pemrograman Dasar",
+    kelas: "TI - 3",
+    tanggal: "10/03/2026",
+    waktu: "07.30 - 10.00 WIB",
+    ruangan: "Ruangan 204",
+  });
 
   return (
     <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
-      
       {/* HEADER */}
       <header className="flex items-center justify-between px-10 py-5">
         <div className="flex items-center gap-3">
@@ -31,13 +30,10 @@ export default function SchedulePage() {
             alt="IdentiFace Logo"
             className="w-40 h-auto object-contain"
           />
-
         </div>
 
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">
-            Ahmad Nasikun
-          </h2>
+          <h2 className="text-2xl font-bold">Ahmad Nasikun</h2>
 
           <div className="w-12 h-12 rounded-full border-4 border-[#123B5D]" />
         </div>
@@ -45,16 +41,13 @@ export default function SchedulePage() {
 
       {/* MAIN */}
       <main className="flex-1 px-10 pb-10 flex gap-8">
-
         {/* SIDEBAR */}
         <aside className="w-64 bg-[#6BAAAF] rounded-lg shadow-md px-5 py-7 flex flex-col">
-          <h2 className="text-center text-xl font-bold mb-6">
-            Menu Dosen
-          </h2>
+          <h2 className="text-center text-xl font-bold mb-6">Menu Dosen</h2>
 
           <nav className="space-y-3">
             <button
-              onClick={() => navigate('/dosen/dashboard')}
+              onClick={() => navigate("/dosen/dashboard")}
               className="w-full h-10 rounded border border-white text-black font-semibold"
             >
               Dashboard
@@ -65,7 +58,7 @@ export default function SchedulePage() {
             </button>
 
             <button
-              onClick={() => navigate('/dosen/monitor')}
+              onClick={() => navigate("/dosen/monitor")}
               className="w-full h-10 rounded border border-white text-black font-semibold"
             >
               Monitor Kehadiran
@@ -73,7 +66,7 @@ export default function SchedulePage() {
           </nav>
 
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="mt-auto w-full h-10 rounded bg-[#B82410] text-white font-semibold"
           >
             Keluar
@@ -82,87 +75,78 @@ export default function SchedulePage() {
 
         {/* CONTENT */}
         <section className="flex-1">
-
-          <h1 className="text-3xl font-bold mb-3">
-            Jadwal Perkuliahan
-          </h1>
+          <h1 className="text-3xl font-bold mb-3">Jadwal Perkuliahan</h1>
 
           {/* TABLE */}
-          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-lg shadow-md p-3 mb-5">
-            <table className="w-full bg-white rounded overflow-hidden">
-              <thead className="bg-[#6BAAAF] text-white">
-                <tr>
-                  <th className="text-left px-5 py-4 font-medium">
-                    Mata Kuliah
-                  </th>
-
-                  <th className="text-left px-5 py-4 font-medium">
-                    Kelas
-                  </th>
-
-                  <th className="text-left px-5 py-4 font-medium">
-                    Tanggal
-                  </th>
-
-                  <th className="text-left px-5 py-4 font-medium">
-                    Waktu
-                  </th>
-
-                  <th className="text-left px-5 py-4 font-medium">
-                    Ruangan
-                  </th>
-
-                  <th className="text-left px-5 py-4 font-medium">
-                    Aksi
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {scheduleData.map((row, index) => (
-                  <tr key={index}>
-                    <td className="px-5 py-4">
-                      {row.mataKuliah}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      {row.kelas}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      {row.tanggal}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      {row.waktu}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      {row.ruangan}
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <div className="flex gap-2">
-                        <button className="bg-green-300 px-3 py-1 rounded text-xs font-semibold">
-                          Mulai
-                        </button>
-
-                        <button className="bg-red-300 px-3 py-1 rounded text-xs font-semibold">
-                          Akhiri
-                        </button>
-                      </div>
-                    </td>
+          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-xl shadow-md overflow-hidden mb-5">
+            <div className="bg-[#6BAAAF] text-white px-5 py-3 font-semibold">
+              Jadwal Perkuliahan
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full bg-white min-w-[600px]">
+                <thead>
+                  <tr className="bg-gray-50 border-b-2 border-[#6BAAAF]">
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Mata Kuliah
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Kelas
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Tanggal
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Waktu
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Ruangan
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Aksi
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {scheduleData.map((row, index) => (
+                    <tr
+                      key={index}
+                      className={`border-b transition-colors duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"} hover:bg-[#f0f9fa]`}
+                    >
+                      <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                        {row.mataKuliah}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {row.kelas}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {row.tanggal}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {row.waktu}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {row.ruangan}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
+                            Mulai
+                          </button>
+                          <button className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
+                            Akhiri
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {/* LAPORAN */}
           <div className="flex items-end gap-3 mb-3">
-            <h2 className="text-3xl font-bold">
-              Laporan Akhir
-            </h2>
+            <h2 className="text-3xl font-bold">Laporan Akhir</h2>
 
             <p className="text-sm text-gray-600 mb-1">
               Senin, 16 Maret 2026 - Semester Genap 2025/2026
@@ -176,11 +160,8 @@ export default function SchedulePage() {
             </div>
 
             <div className="grid grid-cols-3 gap-8 px-1 py-5">
-
               <div>
-                <label className="block mb-2 font-semibold">
-                  Mata Kuliah
-                </label>
+                <label className="block mb-2 font-semibold">Mata Kuliah</label>
 
                 <input
                   value={filters.mataKuliah}
@@ -195,9 +176,7 @@ export default function SchedulePage() {
               </div>
 
               <div>
-                <label className="block mb-2 font-semibold">
-                  Kelas
-                </label>
+                <label className="block mb-2 font-semibold">Kelas</label>
 
                 <input
                   value={filters.kelas}
@@ -274,10 +253,8 @@ export default function SchedulePage() {
           />
         </div>
 
-        <p className="font-semibold">
-          Privacy Policy | Terms of Service
-        </p>
+        <p className="font-semibold">Privacy Policy | Terms of Service</p>
       </footer>
     </div>
-  )
+  );
 }

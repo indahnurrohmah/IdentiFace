@@ -135,74 +135,93 @@ export default function LaporanPresensiPage() {
             )}
           </div>
 
-          <div className="bg-[#EFE6D3] border border-[#123B5D] rounded-lg shadow-md p-4 min-h-[360px]">
-            {activeTab === 'mahasiswa' ? (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-500">
-                    <th className="text-left py-3">Nama</th>
-                    <th className="text-left py-3">NIM</th>
-                    <th className="text-left py-3">Prodi</th>
-                    <th className="text-left py-3">Mata Kuliah</th>
-                    <th className="text-left py-3">Tanggal</th>
-                    <th className="text-left py-3">Status</th>
-                    <th className="text-left py-3">Aksi</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {mahasiswaData.map((row, index) => (
-                    <tr key={index}>
-                      <td className="py-3">{row[0]}</td>
-                      <td className="py-3">{row[1]}</td>
-                      <td className="py-3">{row[2]}</td>
-                      <td className="py-3">{row[3]}</td>
-                      <td className="py-3">{row[4]}</td>
-                      <td className="py-3">
-                        <span className={`${statusClass[row[5]]} px-3 py-1 rounded text-xs font-semibold`}>
-                          {row[5]}
-                        </span>
-                      </td>
-                      <td className="py-3">
-                        <button onClick={() => openModal('lihat', row)} className="mr-2">👁</button>
-                        <button onClick={() => openModal('tambah', row)} className="mr-2 text-[#6BAAAF] font-bold">＋</button>
-                        <button onClick={() => openModal('kurang', row)} className="text-red-500 font-bold">−</button>
-                      </td>
+          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-xl shadow-md overflow-hidden">
+            <div className="bg-[#123B5D] text-white px-5 py-3 font-semibold">
+              {activeTab === 'mahasiswa' ? 'Data Kehadiran Mahasiswa' : 'Data Mata Kuliah'}
+            </div>
+            <div className="overflow-x-auto">
+              {activeTab === 'mahasiswa' ? (
+                <table className="w-full bg-white min-w-[700px]">
+                  <thead>
+                    <tr className="bg-gray-50 border-b-2 border-[#6BAAAF]">
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Nama</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">NIM</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Prodi</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Mata Kuliah</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Tanggal</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Status</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-500">
-                    <th className="text-left py-3">No</th>
-                    <th className="text-left py-3">Mata Kuliah</th>
-                    <th className="text-left py-3">SKS</th>
-                    <th className="text-left py-3">Kelas</th>
-                    <th className="text-left py-3">Dosen</th>
-                    <th className="text-left py-3">Pertemuan Terlaksana</th>
-                    <th className="text-left py-3">Detail</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {mataKuliahData.map((row, index) => (
-                    <tr key={index} className="align-top">
-                      <td className="py-3">{index + 1}</td>
-                      <td className="py-3">{row[0]}</td>
-                      <td className="py-3">{row[1]}</td>
-                      <td className="py-3">{row[2]}</td>
-                      <td className="py-3 max-w-[360px]">{row[3]}</td>
-                      <td className="py-3 text-center">{row[4]}</td>
-                      <td className="py-3">
-                        <button onClick={() => openModal('lihat', row)}>👁</button>
-                      </td>
+                  </thead>
+                  <tbody>
+                    {mahasiswaData.map((row, index) => (
+                      <tr
+                        key={index}
+                        className={`border-b transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-[#f0f9fa]`}
+                      >
+                        <td className="px-4 py-3 text-sm font-medium text-gray-800">{row[0]}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{row[1]}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{row[2]}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{row[3]}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{row[4]}</td>
+                        <td className="px-4 py-3">
+                          <span className={`${statusClass[row[5]]} px-3 py-1 rounded-full text-xs font-semibold`}>
+                            {row[5]}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <button onClick={() => openModal('lihat', row)} className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
+                              Detail
+                            </button>
+                            <button onClick={() => openModal('tambah', row)} className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
+                              Tambah
+                            </button>
+                            <button onClick={() => openModal('kurang', row)} className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
+                              Kurang
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <table className="w-full bg-white min-w-[700px]">
+                  <thead>
+                    <tr className="bg-gray-50 border-b-2 border-[#6BAAAF]">
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">No</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Mata Kuliah</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">SKS</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Kelas</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Dosen</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Pertemuan Terlaksana</th>
+                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Detail</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+                  </thead>
+                  <tbody>
+                    {mataKuliahData.map((row, index) => (
+                      <tr
+                        key={index}
+                        className={`border-b align-top transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-[#f0f9fa]`}
+                      >
+                        <td className="px-4 py-3 text-sm text-gray-600">{index + 1}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-800">{row[0]}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{row[1]}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600">{row[2]}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 max-w-[280px]">{row[3]}</td>
+                        <td className="px-4 py-3 text-sm text-gray-600 text-center">{row[4]}</td>
+                        <td className="px-4 py-3">
+                          <button onClick={() => openModal('lihat', row)} className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
+                            Detail
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </section>
       </main>

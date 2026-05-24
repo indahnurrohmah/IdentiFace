@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
-import { LuUsers, LuUserRoundCheck, LuUserRoundX } from "react-icons/lu";
+import { LuUsers, LuUserRoundCheck, LuUserRoundX, LuScanFace } from "react-icons/lu";
+import { FiRefreshCw, FiCameraOff, FiCamera } from "react-icons/fi";
 
 export default function DataWajahPage() {
   const navigate = useNavigate();
@@ -9,7 +10,9 @@ export default function DataWajahPage() {
   const [selectedRow, setSelectedRow] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [cameraOn, setCameraOn] = useState(false);
-  const [videoRef, setVideoRef] = useState(null);
+  const [scanStep, setScanStep] = useState(0);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
 
   const dataWajahTable = [
     [
@@ -43,20 +46,55 @@ export default function DataWajahPage() {
     Belum: "bg-red-300",
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      window.location.reload();
+    }, 800);
+  };
+
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-
-      if (videoRef) {
-        videoRef.srcObject = stream;
-        videoRef.play();
-      }
-
+      streamRef.current = stream;
       setCameraOn(true);
+      setScanStep(1);
     } catch (error) {
-      alert("Kamera tidak bisa dibuka");
+      alert("Kamera tidak bisa dibuka. Pastikan izin kamera sudah diberikan.");
       console.error(error);
     }
+  };
+
+  // Assign stream ke video element SETELAH dia muncul di DOM
+  useEffect(() => {
+    if (cameraOn && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [cameraOn]);
+
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setCameraOn(false);
+  };
+
+  const closeModal = () => {
+    stopCamera();
+    setIsModalOpen(false);
+    setSelectedRow(null);
+    setSelectedFile(null);
+    setScanStep(0);
+  };
+
+  const openModal = (row) => {
+    setSelectedRow(row);
+    setSelectedFile(null);
+    setScanStep(0);
+    setCameraOn(false);
+    setIsModalOpen(true);
   };
 
   return (
@@ -108,8 +146,21 @@ export default function DataWajahPage() {
               </p>
             </div>
 
-            <button className="bg-[#123B5D] text-white px-6 py-2 rounded font-semibold">
-              Refresh
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm text-white transition-all
+                ${
+                  refreshing
+                    ? "bg-[#123B5D]/60 cursor-not-allowed"
+                    : "bg-[#123B5D] hover:bg-[#0d2a3f] hover:shadow-md active:scale-95"
+                }`}
+            >
+              <FiRefreshCw
+                size={16}
+                className={refreshing ? "animate-spin" : ""}
+              />
+              {refreshing ? "Memperbarui..." : "Refresh"}
             </button>
           </div>
 
@@ -165,142 +216,240 @@ export default function DataWajahPage() {
             </div>
           </div>
 
-          <div className="bg-[#EFE6D3] border border-[#123B5D] rounded-lg shadow-md p-4 min-h-[360px]">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-500">
-                  <th className="text-left py-3">Nama</th>
-                  <th className="text-left py-3">NIM</th>
-                  <th className="text-left py-3">Prodi</th>
-                  <th className="text-left py-3">Peran</th>
-                  <th className="text-left py-3">Status</th>
-                  <th className="text-left py-3">Update Terakhir</th>
-                  <th className="text-left py-3">Aksi</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {dataWajahTable.map((row, index) => (
-                  <tr key={index}>
-                    <td className="py-3">{row[0]}</td>
-                    <td className="py-3">{row[1]}</td>
-                    <td className="py-3">{row[2]}</td>
-                    <td className="py-3">
-                      <span className="px-3 py-1 rounded-full border border-[#6BAAAF] text-xs">
-                        {row[3]}
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <span
-                        className={`${statusClass[row[4]]} px-3 py-1 rounded text-xs font-semibold`}
-                      >
-                        {row[4]}
-                      </span>
-                    </td>
-                    <td className="py-3">{row[5]}</td>
-                    <td className="py-3">
-                      <button
-                        onClick={() => {
-                          setSelectedRow(row);
-                          setIsModalOpen(true);
-                        }}
-                        className="mr-2 text-[#123B5D] font-semibold"
-                      >
-                        Update
-                      </button>
-                      <button className="text-red-500 font-bold">🗑</button>
-                    </td>
+          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-xl shadow-md overflow-hidden">
+            <div className="bg-[#6BAAAF] text-white px-5 py-3 font-semibold">
+              Daftar Data Wajah
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full bg-white min-w-[600px]">
+                <thead>
+                  <tr className="bg-gray-50 border-b-2 border-[#6BAAAF]">
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Nama
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      NIM
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Prodi
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Peran
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Status
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Update Terakhir
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Aksi
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {dataWajahTable.map((row, index) => (
+                    <tr
+                      key={index}
+                      className={`border-b transition-colors duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"} hover:bg-[#f0f9fa]`}
+                    >
+                      <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                        {row[0]}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {row[1]}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {row[2]}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="px-3 py-1 rounded-full border border-[#6BAAAF] text-xs text-gray-600">
+                          {row[3]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`${statusClass[row[4]]} px-3 py-1 rounded-full text-xs font-semibold`}
+                        >
+                          {row[4]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {row[5]}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openModal(row)}
+                            className="bg-[#123B5D] hover:bg-[#0d2a3f] text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                          >
+                            Update
+                          </button>
+                          <button className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
+                            Hapus
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </section>
       </main>
 
       {isModalOpen && selectedRow && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-[#EFE6D3] w-[560px] rounded-2xl border border-[#123B5D] shadow-lg p-7">
-            <h2 className="text-2xl font-bold mb-1">Update Data Wajah</h2>
+        <>
+          <style>{`
+            @keyframes modalIn {
+              from { opacity: 0; transform: scale(0.93) translateY(16px); }
+              to   { opacity: 1; transform: scale(1) translateY(0); }
+            }
+            @keyframes scanLine {
+              0%   { top: 8%;  opacity: 1; }
+              50%  { opacity: 0.5; }
+              100% { top: 88%; opacity: 1; }
+            }
+            @keyframes cornerPulse {
+              0%, 100% { opacity: 1; }
+              50%       { opacity: 0.3; }
+            }
+            .modal-card { animation: modalIn 0.3s ease-out forwards; }
+            .scan-line-modal {
+              position: absolute; left: 0; right: 0; height: 2px;
+              background: linear-gradient(90deg, transparent, #6BAAAF, #fff, #6BAAAF, transparent);
+              box-shadow: 0 0 10px #6BAAAF;
+              animation: scanLine 1.8s ease-in-out infinite alternate;
+            }
+            .corner-pulse-modal { animation: cornerPulse 1.4s ease-in-out infinite; }
+          `}</style>
 
-            <p className="text-sm font-semibold mb-5">
-              {selectedRow[0]} — {selectedRow[1]}
-            </p>
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+            <div className="modal-card bg-[#EFE6D3] w-full max-w-[540px] rounded-2xl border border-[#123B5D] shadow-2xl p-7">
 
-            <div className="bg-white rounded-2xl h-60 flex flex-col items-center justify-center relative mb-4">
-              <div className="absolute top-5 left-5 w-10 h-10 border-t-2 border-l-2 border-[#123B5D] rounded-tl-xl"></div>
-              <div className="absolute top-5 right-5 w-10 h-10 border-t-2 border-r-2 border-[#123B5D] rounded-tr-xl"></div>
-              <div className="absolute bottom-5 left-5 w-10 h-10 border-b-2 border-l-2 border-[#123B5D] rounded-bl-xl"></div>
-              <div className="absolute bottom-5 right-5 w-10 h-10 border-b-2 border-r-2 border-[#123B5D] rounded-br-xl"></div>
-
-              {cameraOn ? (
-                <video
-                  ref={(ref) => setVideoRef(ref)}
-                  autoPlay
-                  className="w-full h-full object-cover rounded-2xl"
-                />
-              ) : (
-                <>
-                  <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center text-3xl mb-3">
-                    👤
-                  </div>
-
-                  <p className="text-sm font-semibold">
-                    Upload foto atau ambil langsung untuk memulai scan
-                  </p>
-                </>
-              )}
-            </div>
-
-            <div className="grid grid-cols-4 gap-2 mb-4 text-xs font-semibold text-center">
-              <div className="bg-[#EFE6D3] rounded-full py-1">Upload</div>
-              <div className="bg-[#EFE6D3] rounded-full py-1">Deteksi</div>
-              <div className="bg-[#EFE6D3] rounded-full py-1">Mapping</div>
-              <div className="bg-[#EFE6D3] rounded-full py-1">Selesai</div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <label className="bg-yellow-400 border border-[#123B5D] rounded-lg py-2 font-semibold text-center cursor-pointer">
-                Upload Foto
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => setSelectedFile(e.target.files[0])}
-                />
-              </label>
-
-              <button
-                onClick={startCamera}
-                className="bg-[#6BAAAF] border border-[#123B5D] rounded-lg py-2 font-semibold"
-              >
-                Buka Kamera
-              </button>
-            </div>
-
-            {selectedFile && (
-              <p className="text-sm text-center mt-2">
-                File dipilih: <strong>{selectedFile.name}</strong>
+              {/* Header */}
+              <h2 className="text-2xl font-bold text-[#123B5D] mb-0.5">Update Data Wajah</h2>
+              <p className="text-sm font-semibold text-gray-500 mb-5">
+                {selectedRow[0]} — {selectedRow[1]}
               </p>
-            )}
 
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-6 py-2 rounded border border-[#123B5D] bg-white font-semibold"
-              >
-                Cancel
-              </button>
+              {/* Step indicator */}
+              {(() => {
+                const steps = ["Input", "Deteksi", "Mapping", "Selesai"];
+                return (
+                  <div className="flex items-center mb-5">
+                    {steps.map((label, i) => {
+                      const done = i < scanStep;
+                      const active = i === scanStep;
+                      return (
+                        <div key={label} className="flex items-center flex-1 last:flex-none">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500
+                              ${done ? "bg-[#6BAAAF] text-white" : active ? "bg-[#123B5D] text-white ring-2 ring-[#123B5D] ring-offset-2" : "bg-gray-200 text-gray-400"}`}>
+                              {done ? "✓" : i + 1}
+                            </div>
+                            <span className={`text-[10px] font-semibold mt-1
+                              ${active ? "text-[#123B5D]" : done ? "text-[#6BAAAF]" : "text-gray-400"}`}>
+                              {label}
+                            </span>
+                          </div>
+                          {i < steps.length - 1 && (
+                            <div className={`flex-1 h-px mb-4 mx-1 transition-all duration-500 ${done ? "bg-[#6BAAAF]" : "bg-gray-300"}`} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-6 py-2 rounded bg-[#123B5D] text-white font-semibold"
-              >
-                Save
-              </button>
+              {/* Camera / preview area */}
+              <div className="bg-[#0d1117] rounded-2xl h-56 relative overflow-hidden mb-4">
+                {cameraOn ? (
+                  <>
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Scan line */}
+                    <div className="scan-line-modal" />
+                    {/* Corner brackets */}
+                    <div className="corner-pulse-modal absolute top-4 left-4 w-9 h-9 border-t-[3px] border-l-[3px] border-[#6BAAAF] rounded-tl-lg" />
+                    <div className="corner-pulse-modal absolute top-4 right-4 w-9 h-9 border-t-[3px] border-r-[3px] border-[#6BAAAF] rounded-tr-lg" />
+                    <div className="corner-pulse-modal absolute bottom-4 left-4 w-9 h-9 border-b-[3px] border-l-[3px] border-[#6BAAAF] rounded-bl-lg" />
+                    <div className="corner-pulse-modal absolute bottom-4 right-4 w-9 h-9 border-b-[3px] border-r-[3px] border-[#6BAAAF] rounded-br-lg" />
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-1.5 text-center">
+                      <p className="text-[#6BAAAF] text-xs font-bold tracking-widest">SCANNING WAJAH...</p>
+                    </div>
+                  </>
+                ) : selectedFile ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center">
+                    <LuScanFace size={44} className="text-[#6BAAAF] mb-2" />
+                    <p className="text-white text-sm font-semibold">{selectedFile.name}</p>
+                    <p className="text-gray-400 text-xs mt-1">Foto siap diproses</p>
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mb-3 ring-4 ring-gray-700">
+                      <FiCameraOff size={30} className="text-gray-500" />
+                    </div>
+                    <p className="text-gray-400 text-sm">Kamera belum aktif</p>
+                    <p className="text-gray-600 text-xs mt-1">Upload foto atau buka kamera</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <label className="flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-500 rounded-lg py-2.5 font-semibold text-sm text-white cursor-pointer transition-colors">
+                  <FiCamera size={16} /> Upload Foto
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      setSelectedFile(e.target.files[0]);
+                      stopCamera();
+                      setScanStep(1);
+                    }}
+                  />
+                </label>
+
+                <button
+                  onClick={cameraOn ? stopCamera : startCamera}
+                  className={`flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm transition-colors
+                    ${cameraOn
+                      ? "bg-red-100 hover:bg-red-200 text-red-700"
+                      : "bg-[#6BAAAF] hover:bg-[#5a9499] text-white"
+                    }`}
+                >
+                  {cameraOn ? <FiCameraOff size={16} /> : <FiCamera size={16} />}
+                  {cameraOn ? "Tutup Kamera" : "Buka Kamera"}
+                </button>
+              </div>
+
+              {/* Footer buttons */}
+              <div className="flex justify-end gap-3 mt-2">
+                <button
+                  onClick={closeModal}
+                  className="px-5 py-2.5 rounded-lg border border-gray-300 bg-white text-sm font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={closeModal}
+                  className="px-5 py-2.5 rounded-lg bg-[#123B5D] hover:bg-[#0d2a3f] text-white text-sm font-semibold transition-colors"
+                >
+                  Save
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       <footer className="bg-[#74B5BD] py-5 text-center">
