@@ -7,10 +7,131 @@ import {
   LuUserRoundSearch,
 } from "react-icons/lu";
 import { MdOutlineSick } from "react-icons/md";
+import { FiCheck, FiTrash2, FiRefreshCw } from "react-icons/fi";
+import { MdCheckCircle, MdEditSquare } from "react-icons/md";
 
 export default function MonitorPage() {
   const navigate = useNavigate();
+  const [modalTambah, setModalTambah] = useState(null);
+  const [formTambah, setFormTambah] = useState({
+    status: "Hadir",
+    alasan: "",
+    bukti: null,
+  });
+
+  const [students, setStudents] = useState([
+    {
+      id: 1,
+      nama: "Manusia a",
+      tanggal: "16/03/2026",
+      waktu: "08:30 WIB",
+      status: "Hadir",
+    },
+    {
+      id: 2,
+      nama: "Manusia b",
+      tanggal: "16/03/2026",
+      waktu: "09:15 WIB",
+      status: "Terlambat",
+    },
+    {
+      id: 3,
+      nama: "Manusia c",
+      tanggal: "16/03/2026",
+      waktu: "-",
+      status: "Tidak Hadir",
+    },
+    {
+      id: 4,
+      nama: "Manusia d",
+      tanggal: "16/03/2026",
+      waktu: "08:30 WIB",
+      status: "Izin/Sakit",
+    },
+    {
+      id: 5,
+      nama: "Manusia e",
+      tanggal: "16/03/2026",
+      waktu: "08:28 WIB",
+      status: "Hadir",
+    },
+  ]);
   const [selectedStudents, setSelectedStudents] = useState({});
+  const [toast, setToast] = useState(null);
+
+  const selectAll =
+    students.length > 0 && students.every((s) => selectedStudents[s.id]);
+
+  const statusStyle = {
+    Hadir: "bg-green-100 text-green-700 border border-green-300",
+    Terlambat: "bg-yellow-100 text-yellow-700 border border-yellow-300",
+    "Tidak Hadir": "bg-red-100 text-red-700 border border-red-300",
+    "Izin/Sakit": "bg-blue-100 text-blue-700 border border-blue-300",
+  };
+
+  const handleCheckboxChange = (id) => {
+    setSelectedStudents((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedStudents({});
+    } else {
+      const all = {};
+      students.forEach((s) => (all[s.id] = true));
+      setSelectedStudents(all);
+    }
+  };
+
+  const handleStatusChange = (id, newStatus) => {
+    setStudents((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s)),
+    );
+  };
+
+  const handleTambahHadir = (student) => {
+    setModalTambah(student);
+    setFormTambah({ status: "Hadir", alasan: "", bukti: null });
+  };
+
+  const handleSaveTambah = () => {
+    const now = new Date();
+    const jam =
+      now.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) +
+      " WIB";
+
+    const selectedIds = Object.entries(selectedStudents)
+      .filter(([, checked]) => checked)
+      .map(([id]) => parseInt(id));
+
+    // Kalau ada yang diceklis, update semua yang diceklis. Kalau ga ada, update yang diklik aja
+    const targetIds = selectedIds.length > 0 ? selectedIds : [modalTambah.id];
+
+    setStudents((prev) =>
+      prev.map((s) =>
+        targetIds.includes(s.id)
+          ? { ...s, status: formTambah.status, waktu: jam }
+          : s,
+      ),
+    );
+
+    if (selectedIds.length > 0) setSelectedStudents({});
+    setModalTambah(null);
+    setToast(
+      selectedIds.length > 1
+        ? `${selectedIds.length} mahasiswa berhasil diperbarui!`
+        : "Data kehadiran berhasil diperbarui!",
+    );
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      window.location.reload();
+    }, 800);
+  };
 
   const summaryStats = [
     {
@@ -38,19 +159,6 @@ export default function MonitorPage() {
       icon: <MdOutlineSick size={64} />,
     },
   ];
-  const studentData = Array(4).fill({
-    nama: "Annisaa",
-    tanggal: "16/03/2026",
-    waktu: "08:30 WIB",
-    status: "Hadir",
-  });
-
-  const handleCheckboxChange = (id) => {
-    setSelectedStudents((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
@@ -110,8 +218,21 @@ export default function MonitorPage() {
               </p>
             </div>
 
-            <button className="bg-[#123B5D] text-white px-6 py-3 rounded-lg font-semibold">
-              Refresh
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm text-white transition-all
+                ${
+                  refreshing
+                    ? "bg-[#123B5D]/60 cursor-not-allowed"
+                    : "bg-[#123B5D] hover:bg-[#0d2a3f] hover:shadow-md active:scale-95"
+                }`}
+            >
+              <FiRefreshCw
+                size={16}
+                className={refreshing ? "animate-spin" : ""}
+              />
+              {refreshing ? "Memperbarui..." : "Refresh"}
             </button>
           </div>
 
@@ -132,69 +253,196 @@ export default function MonitorPage() {
             ))}
           </div>
 
-          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-lg shadow-md p-3">
-            <div className="bg-[#6BAAAF] text-white px-4 py-3 rounded-t font-semibold">
-              Daftar Mahasiswa
+          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-xl shadow-md overflow-hidden">
+            {/* Header tabel */}
+            <div className="bg-[#6BAAAF] text-white px-5 py-3 font-semibold flex items-center justify-between">
+              <span>Daftar Mahasiswa</span>
+              <span className="text-sm font-normal opacity-70">
+                {Object.values(selectedStudents).filter(Boolean).length} dipilih
+              </span>
             </div>
 
-            <table className="w-full bg-white">
-              <thead>
-                <tr className="border-b">
-                  <th className="px-5 py-4 w-12">
-                    <input type="checkbox" />
-                  </th>
-                  <th className="text-left px-5 py-4">Nama Mahasiswa</th>
-                  <th className="text-left px-5 py-4">Tanggal</th>
-                  <th className="text-left px-5 py-4">Waktu</th>
-                  <th className="text-left px-5 py-4">Status</th>
-                  <th className="text-left px-5 py-4">Aksi</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {studentData.map((student, index) => (
-                  <tr key={index} className="border-b">
-                    <td className="px-5 py-4">
+            {/* Scrollable wrapper biar oke di HP */}
+            <div className="overflow-x-auto">
+              <table className="w-full bg-white min-w-[600px]">
+                <thead>
+                  <tr className="bg-gray-50 border-b-2 border-[#6BAAAF]">
+                    <th className="px-4 py-3 w-12">
                       <input
                         type="checkbox"
-                        checked={selectedStudents[index] || false}
-                        onChange={() => handleCheckboxChange(index)}
+                        checked={selectAll}
+                        onChange={handleSelectAll}
+                        className="w-4 h-4 accent-[#123B5D] cursor-pointer"
                       />
-                    </td>
-
-                    <td className="px-5 py-4">{student.nama}</td>
-                    <td className="px-5 py-4">{student.tanggal}</td>
-                    <td className="px-5 py-4">{student.waktu}</td>
-
-                    <td className="px-5 py-4">
-                      <span className="bg-green-200 px-4 py-2 rounded font-semibold">
-                        {student.status}
-                      </span>
-                    </td>
-
-                    <td className="px-5 py-4">
-                      <div className="flex gap-2">
-                        <button className="bg-green-200 px-4 py-2 rounded font-semibold">
-                          Tambah
-                        </button>
-                        <button className="bg-red-200 px-4 py-2 rounded font-semibold">
-                          Hapus
-                        </button>
-                      </div>
-                    </td>
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Nama Mahasiswa
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Tanggal
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Waktu
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Status
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Aksi
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
 
-            <div className="pt-5">
-              <button className="w-full bg-[#123B5D] text-white py-3 rounded font-semibold">
-                Simpan
-              </button>
+                <tbody>
+                  {students.map((student, index) => (
+                    <tr
+                      key={student.id}
+                      className={`border-b transition-colors duration-150
+              ${
+                selectedStudents[student.id]
+                  ? "bg-blue-50"
+                  : index % 2 === 0
+                    ? "bg-white"
+                    : "bg-gray-50/50"
+              }
+              hover:bg-[#f0f9fa]
+            `}
+                    >
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedStudents[student.id] || false}
+                          onChange={() => handleCheckboxChange(student.id)}
+                          className="w-4 h-4 accent-[#123B5D] cursor-pointer"
+                        />
+                      </td>
+
+                      <td className="px-4 py-3 font-medium text-sm text-gray-800">
+                        {student.nama}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {student.tanggal}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-600">
+                        {student.waktu}
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <span
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-full ${statusStyle[student.status]}`}
+                        >
+                          {student.status}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleTambahHadir(student)}
+                            className="flex items-center gap-1 bg-[#123B5D] hover:bg-[#0d2a3f] text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                          >
+                            <MdEditSquare size={13} /> Perbarui Status
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
       </main>
+
+      {modalTambah && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+          <div className="bg-[#EFE6D3] rounded-2xl shadow-2xl w-full max-w-md p-6">
+            <h2 className="text-xl font-bold text-[#123B5D] mb-0.5">
+              Tambah Kehadiran
+            </h2>
+            <p className="text-sm text-[#123B5D] font-medium mb-5">
+              {Object.values(selectedStudents).filter(Boolean).length > 1
+                ? `${Object.values(selectedStudents).filter(Boolean).length} mahasiswa dipilih`
+                : `${modalTambah.nama} — Kecerdasan Buatan`}
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                Status Baru
+              </label>
+              <select
+                value={formTambah.status}
+                onChange={(e) =>
+                  setFormTambah((prev) => ({ ...prev, status: e.target.value }))
+                }
+                className="w-full h-11 border border-gray-300 rounded-lg px-4 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#123B5D]/30"
+              >
+                <option value="Hadir">Hadir</option>
+                <option value="Terlambat">Terlambat</option>
+                <option value="Tidak Hadir">Tidak Hadir</option>
+                <option value="Izin/Sakit">Izin/Sakit</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                Alasan
+              </label>
+              <textarea
+                value={formTambah.alasan}
+                onChange={(e) =>
+                  setFormTambah((prev) => ({ ...prev, alasan: e.target.value }))
+                }
+                placeholder="Tuliskan alasan perubahan kehadiran..."
+                rows={4}
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#123B5D]/30"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                Bukti Konfirmasi
+              </label>
+              <div className="flex items-center gap-3">
+                <label className="bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-semibold px-4 py-2 rounded-lg cursor-pointer transition-colors">
+                  Choose File
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={(e) =>
+                      setFormTambah((prev) => ({
+                        ...prev,
+                        bukti: e.target.files[0],
+                      }))
+                    }
+                  />
+                </label>
+                <span className="text-sm text-gray-500">
+                  {formTambah.bukti ? formTambah.bukti.name : "No file chosen"}
+                </span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Upload surat izin, bukti sakit, atau dokumen lainnya
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setModalTambah(null)}
+                className="px-5 py-2.5 rounded-lg border border-gray-300 text-sm font-semibold hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveTambah}
+                className="px-5 py-2.5 rounded-lg bg-[#123B5D] hover:bg-[#0d2a3f] text-white text-sm font-semibold transition-colors"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="bg-[#74B5BD] py-5 text-center">
         <div className="flex justify-center items-center gap-2 mb-2">
