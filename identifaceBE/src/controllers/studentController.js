@@ -99,11 +99,27 @@ const getStudentDashboardSummary = async (req, res, next) => {
         res.json({ success: true, data: summary });
     } catch (error) { next(error); }
 };
+/**
+ * Get logged-in student profile (NIM, Nama, Prodi)
+ * Endpoint: GET /api/student/profile
+ */
+const getStudentProfile = async (req, res, next) => {
+    try {
+        const student = await studentRepository.findByIdAkun(req.user.id_akun);
+        if (!student) {
+            return res.status(404).json({ success: false, message: 'Profil tidak ditemukan.' });
+        }
+        res.json({ success: true, data: student });
+    } catch (error) {
+        next(error);
+    }
+};
 
 module.exports = { 
     getStudentTodaySessions, 
     getAttendanceHistory, 
     getAttendanceSummary,
     scanAttendance,
-    getStudentDashboardSummary
+    getStudentDashboardSummary,
+    getStudentProfile
 };

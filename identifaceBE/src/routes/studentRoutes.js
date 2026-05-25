@@ -4,7 +4,8 @@ const {
     getAttendanceHistory, 
     getAttendanceSummary, 
     scanAttendance,
-    getStudentDashboardSummary 
+    getStudentDashboardSummary,
+    getStudentProfile
 } = require('../controllers/studentController');
 const { authenticate, authorize } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -18,5 +19,6 @@ router.get('/attendance/history', getAttendanceHistory);
 router.get('/attendance/summary', getAttendanceSummary);
 router.post('/attendance/scan', upload.single('file'), scanAttendance);
 router.get('/dashboard/summary', getStudentDashboardSummary);
+router.get('/profile', getStudentProfile);
 
 module.exports = router;
