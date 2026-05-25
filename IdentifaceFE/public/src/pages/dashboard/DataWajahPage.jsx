@@ -1,7 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
-import { LuUsers, LuUserRoundCheck, LuUserRoundX, LuScanFace } from "react-icons/lu";
+import {
+  LuUsers,
+  LuUserRoundCheck,
+  LuUserRoundX,
+  LuScanFace,
+} from "react-icons/lu";
 import { FiRefreshCw, FiCameraOff, FiCamera } from "react-icons/fi";
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
@@ -27,7 +32,7 @@ async function apiFetch(path, options = {}) {
 // ─── MAIN COMPONENT ────────────────────────────────────────────────────────
 export default function DataWajahPage() {
   const navigate = useNavigate();
-  
+
   // Ambil profil admin dari localStorage
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -37,7 +42,7 @@ export default function DataWajahPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
-  
+
   // State Filter
   const [search, setSearch] = useState("");
   const [filterProdi, setFilterProdi] = useState("Semua Prodi");
@@ -54,27 +59,35 @@ export default function DataWajahPage() {
   const streamRef = useRef(null);
 
   // ── Fetch Data ─────────────────────────────────────────────────────────
-  const fetchStudents = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    setError(null);
+  const fetchStudents = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setError(null);
 
-    try {
-      // Memanggil endpoint backend dengan parameter query opsional
-      // Catatan: Pastikan backend support query parameter ini
-      const queryParams = new URLSearchParams();
-      if (search) queryParams.append("search", search);
-      if (filterProdi !== "Semua Prodi") queryParams.append("prodi", filterProdi);
+      try {
+        // Memanggil endpoint backend dengan parameter query opsional
+        // Catatan: Pastikan backend support query parameter ini
+        const queryParams = new URLSearchParams();
+        if (search) queryParams.append("search", search);
+        if (filterProdi !== "Semua Prodi")
+          queryParams.append("prodi", filterProdi);
 
-      const response = await apiFetch(`/admin/students?${queryParams.toString()}`);
-      setDataWajah(Array.isArray(response.data) ? response.data : []);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [search, filterProdi]);
+        const response = await apiFetch(
+          `/admin/students?${queryParams.toString()}`,
+        );
+        setDataWajah(
+          Array.isArray(response.data?.data) ? response.data.data : [],
+        );
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [search, filterProdi],
+  );
 
   useEffect(() => {
     // Delay fetch saat mengetik pencarian (Debounce manual sederhana)
@@ -90,7 +103,9 @@ export default function DataWajahPage() {
       setCameraOn(true);
       setScanStep(1);
     } catch (error) {
-      alert("Kamera tidak bisa dibuka. Pastikan izin kamera pada browser sudah diberikan.");
+      alert(
+        "Kamera tidak bisa dibuka. Pastikan izin kamera pada browser sudah diberikan.",
+      );
       console.error(error);
     }
   };
@@ -134,7 +149,7 @@ export default function DataWajahPage() {
       canvas.height = videoRef.current.videoHeight;
       const ctx = canvas.getContext("2d");
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      
+
       return new Promise((resolve) => {
         canvas.toBlob((blob) => {
           resolve(new File([blob], "capture.jpg", { type: "image/jpeg" }));
@@ -165,11 +180,14 @@ export default function DataWajahPage() {
       formData.append("file", fileToUpload);
 
       // Mengirim POST ke controller admin: registerFaceData
-      const response = await fetch(`${API_BASE}/admin/face-data/${selectedRow.nim}/register`, {
-        method: "POST",
-        credentials: "include",
-        body: formData, // Browser otomatis set Content-Type ke multipart/form-data
-      });
+      const response = await fetch(
+        `${API_BASE}/admin/face-data/${encodeURIComponent(selectedRow.nim)}/register`,
+        {
+          method: "POST",
+          credentials: "include",
+          body: formData, // Browser otomatis set Content-Type ke multipart/form-data
+        },
+      );
 
       const json = await response.json();
 
@@ -178,14 +196,15 @@ export default function DataWajahPage() {
       }
 
       setScanStep(3); // Step Selesai
-      setToast(`Wajah ${selectedRow.nama_lengkap || selectedRow.nama} berhasil didaftarkan!`);
-      
+      setToast(
+        `Wajah ${selectedRow.nama_lengkap || selectedRow.nama} berhasil didaftarkan!`,
+      );
+
       setTimeout(() => {
         setToast(null);
         closeModal();
         fetchStudents(); // Refresh tabel setelah sukses
       }, 2000);
-
     } catch (err) {
       alert("Terjadi kesalahan: " + err.message);
       setScanStep(1); // Kembali ke step sebelumnya jika gagal
@@ -196,7 +215,10 @@ export default function DataWajahPage() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" });
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
     } catch (e) {}
     localStorage.removeItem("user");
     navigate("/");
@@ -205,7 +227,9 @@ export default function DataWajahPage() {
   // ── Perhitungan Statistik ─────────────────────────────────────────────
   // Asumsi atribut backend: `is_registered` atau `face_registered`
   const totalData = dataWajah.length;
-  const registeredCount = dataWajah.filter(d => d.is_registered === true || d.status_wajah === "Terdaftar").length;
+  const registeredCount = dataWajah.filter(
+    (d) => d.is_registered === true || d.status_wajah === "Terdaftar",
+  ).length;
   const unregisteredCount = totalData - registeredCount;
 
   return (
@@ -219,9 +243,15 @@ export default function DataWajahPage() {
 
       {/* HEADER */}
       <header className="flex items-center justify-between px-10 py-5">
-        <img src={logo} alt="IdentiFace Logo" className="w-40 h-auto object-contain" />
+        <img
+          src={logo}
+          alt="IdentiFace Logo"
+          className="w-40 h-auto object-contain"
+        />
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">{user?.nama || "Administrator"}</h2>
+          <h2 className="text-2xl font-bold">
+            {user?.nama || "Administrator"}
+          </h2>
           <div className="w-12 h-12 rounded-full border-4 border-[#123B5D] bg-[#6BAAAF] flex items-center justify-center text-white font-bold text-lg">
             {user?.nama ? user.nama.charAt(0).toUpperCase() : "A"}
           </div>
@@ -267,7 +297,10 @@ export default function DataWajahPage() {
               className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm text-white transition-all
                 ${refreshing || loading ? "bg-[#123B5D]/60 cursor-not-allowed" : "bg-[#123B5D] hover:bg-[#0d2a3f] hover:shadow-md active:scale-95"}`}
             >
-              <FiRefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+              <FiRefreshCw
+                size={16}
+                className={refreshing ? "animate-spin" : ""}
+              />
               {refreshing ? "Memperbarui..." : "Refresh"}
             </button>
           </div>
@@ -275,12 +308,29 @@ export default function DataWajahPage() {
           {/* Statistik Box */}
           <div className="grid grid-cols-3 gap-5 mb-5">
             {[
-              { value: loading ? "-" : totalData, label: "Total Data", icon: <LuUsers size={64} /> },
-              { value: loading ? "-" : registeredCount, label: "Terdaftar", icon: <LuUserRoundCheck size={64} /> },
-              { value: loading ? "-" : unregisteredCount, label: "Belum Terdaftar", icon: <LuUserRoundX size={64} /> },
+              {
+                value: loading ? "-" : totalData,
+                label: "Total Data",
+                icon: <LuUsers size={64} />,
+              },
+              {
+                value: loading ? "-" : registeredCount,
+                label: "Terdaftar",
+                icon: <LuUserRoundCheck size={64} />,
+              },
+              {
+                value: loading ? "-" : unregisteredCount,
+                label: "Belum Terdaftar",
+                icon: <LuUserRoundX size={64} />,
+              },
             ].map(({ value, label, icon }) => (
-              <div key={label} className="bg-[#6BAAAF] rounded-2xl shadow-md px-6 py-4 h-24 relative overflow-hidden">
-                <div className="absolute -right-3 -bottom-3 text-white opacity-20">{icon}</div>
+              <div
+                key={label}
+                className="bg-[#6BAAAF] rounded-2xl shadow-md px-6 py-4 h-24 relative overflow-hidden"
+              >
+                <div className="absolute -right-3 -bottom-3 text-white opacity-20">
+                  {icon}
+                </div>
                 <h2 className="text-3xl font-bold text-white">{value}</h2>
                 <p className="text-sm text-white/80">{label}</p>
               </div>
@@ -297,7 +347,7 @@ export default function DataWajahPage() {
                 className="h-9 rounded px-3 text-sm border border-[#6BAAAF] focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
               />
               {/* Note: Disembunyikan select lain sementara, karena backend '/students' biasanya fokus ke filter prodi/angkatan */}
-              <select 
+              <select
                 value={filterProdi}
                 onChange={(e) => setFilterProdi(e.target.value)}
                 className="h-9 rounded px-3 text-sm border border-[#6BAAAF] focus:outline-none"
@@ -318,38 +368,74 @@ export default function DataWajahPage() {
               <table className="w-full bg-white min-w-[700px]">
                 <thead>
                   <tr className="bg-gray-50 border-b-2 border-[#6BAAAF]">
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">NIM / ID</th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Nama</th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Prodi</th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Status Wajah</th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Aksi</th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      NIM / ID
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Nama
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Prodi
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Status Wajah
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Aksi
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="5" className="text-center py-10 text-gray-400">Memuat data...</td>
+                      <td
+                        colSpan="5"
+                        className="text-center py-10 text-gray-400"
+                      >
+                        Memuat data...
+                      </td>
                     </tr>
                   ) : error ? (
-                     <tr>
-                      <td colSpan="5" className="text-center py-10 text-red-500">Error: {error}</td>
+                    <tr>
+                      <td
+                        colSpan="5"
+                        className="text-center py-10 text-red-500"
+                      >
+                        Error: {error}
+                      </td>
                     </tr>
                   ) : dataWajah.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="text-center py-10 text-gray-400">Tidak ada data ditemukan.</td>
+                      <td
+                        colSpan="5"
+                        className="text-center py-10 text-gray-400"
+                      >
+                        Tidak ada data ditemukan.
+                      </td>
                     </tr>
                   ) : (
                     dataWajah.map((row, index) => {
                       // Menentukan status terdaftar dari API backend
-                      const isRegistered = row.is_registered === true || row.status_wajah === "Terdaftar";
-                      
+                      const isRegistered = row.face_registered === true;
+
                       return (
-                        <tr key={row.nim || index} className={`border-b transition-colors duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"} hover:bg-[#f0f9fa]`}>
-                          <td className="px-4 py-3 text-sm text-gray-600 font-medium">{row.nim}</td>
-                          <td className="px-4 py-3 text-sm font-bold text-gray-800">{row.nama_lengkap || row.nama}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{row.prodi || "-"}</td>
+                        <tr
+                          key={row.nim || index}
+                          className={`border-b transition-colors duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"} hover:bg-[#f0f9fa]`}
+                        >
+                          <td className="px-4 py-3 text-sm text-gray-600 font-medium">
+                            {row.nim}
+                          </td>
+                          <td className="px-4 py-3 text-sm font-bold text-gray-800">
+                            {row.nama_lengkap || row.nama}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">
+                            {row.prodi || "-"}
+                          </td>
                           <td className="px-4 py-3">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isRegistered ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"}`}>
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${isRegistered ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"}`}
+                            >
                               {isRegistered ? "Terdaftar" : "Belum"}
                             </span>
                           </td>
@@ -358,7 +444,9 @@ export default function DataWajahPage() {
                               onClick={() => openModal(row)}
                               className="bg-[#123B5D] hover:bg-[#0d2a3f] text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shadow-sm"
                             >
-                              {isRegistered ? "Perbarui Wajah" : "Daftarkan Wajah"}
+                              {isRegistered
+                                ? "Perbarui Wajah"
+                                : "Daftarkan Wajah"}
                             </button>
                           </td>
                         </tr>
@@ -401,11 +489,13 @@ export default function DataWajahPage() {
 
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4 backdrop-blur-sm">
             <div className="modal-card bg-[#EFE6D3] w-full max-w-[540px] rounded-2xl border-2 border-[#123B5D] shadow-2xl p-7">
-
               {/* Header */}
-              <h2 className="text-2xl font-bold text-[#123B5D] mb-0.5">Mendaftarkan Wajah</h2>
+              <h2 className="text-2xl font-bold text-[#123B5D] mb-0.5">
+                Mendaftarkan Wajah
+              </h2>
               <p className="text-sm font-semibold text-gray-500 mb-5">
-                {selectedRow.nama_lengkap || selectedRow.nama} — {selectedRow.nim}
+                {selectedRow.nama_lengkap || selectedRow.nama} —{" "}
+                {selectedRow.nim}
               </p>
 
               {/* Step indicator */}
@@ -414,18 +504,27 @@ export default function DataWajahPage() {
                   const done = i < scanStep;
                   const active = i === scanStep;
                   return (
-                    <div key={label} className="flex items-center flex-1 last:flex-none">
+                    <div
+                      key={label}
+                      className="flex items-center flex-1 last:flex-none"
+                    >
                       <div className="flex flex-col items-center">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500
-                          ${done ? "bg-[#6BAAAF] text-white" : active ? "bg-[#123B5D] text-white ring-2 ring-[#123B5D] ring-offset-2" : "bg-gray-300 text-gray-500"}`}>
+                        <div
+                          className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500
+                          ${done ? "bg-[#6BAAAF] text-white" : active ? "bg-[#123B5D] text-white ring-2 ring-[#123B5D] ring-offset-2" : "bg-gray-300 text-gray-500"}`}
+                        >
                           {done ? "✓" : i + 1}
                         </div>
-                        <span className={`text-[10px] font-semibold mt-1 ${active ? "text-[#123B5D]" : done ? "text-[#6BAAAF]" : "text-gray-500"}`}>
+                        <span
+                          className={`text-[10px] font-semibold mt-1 ${active ? "text-[#123B5D]" : done ? "text-[#6BAAAF]" : "text-gray-500"}`}
+                        >
                           {label}
                         </span>
                       </div>
                       {i < 2 && (
-                        <div className={`flex-1 h-px mb-4 mx-1 transition-all duration-500 ${done ? "bg-[#6BAAAF]" : "bg-gray-300"}`} />
+                        <div
+                          className={`flex-1 h-px mb-4 mx-1 transition-all duration-500 ${done ? "bg-[#6BAAAF]" : "bg-gray-300"}`}
+                        />
                       )}
                     </div>
                   );
@@ -453,8 +552,12 @@ export default function DataWajahPage() {
                 ) : selectedFile ? (
                   <div className="w-full h-full flex flex-col items-center justify-center">
                     <LuScanFace size={50} className="text-[#6BAAAF] mb-3" />
-                    <p className="text-white text-sm font-semibold px-4 text-center">{selectedFile.name}</p>
-                    <p className="text-gray-400 text-xs mt-1">Foto siap dikirim ke AI</p>
+                    <p className="text-white text-sm font-semibold px-4 text-center">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Foto siap dikirim ke AI
+                    </p>
                   </div>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center">
@@ -462,22 +565,31 @@ export default function DataWajahPage() {
                       <FiCameraOff size={30} className="text-gray-500" />
                     </div>
                     <p className="text-gray-400 text-sm">Kamera tidak aktif</p>
-                    <p className="text-gray-600 text-xs mt-1">Pilih metode di bawah</p>
+                    <p className="text-gray-600 text-xs mt-1">
+                      Pilih metode di bawah
+                    </p>
                   </div>
                 )}
 
                 {/* Overlay Loading saat AI Memproses */}
                 {isSaving && (
                   <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10 backdrop-blur-[2px]">
-                     <FiRefreshCw size={36} className="text-white animate-spin mb-3" />
-                     <p className="text-white font-bold tracking-widest text-sm">MEMPROSES AI...</p>
+                    <FiRefreshCw
+                      size={36}
+                      className="text-white animate-spin mb-3"
+                    />
+                    <p className="text-white font-bold tracking-widest text-sm">
+                      MEMPROSES AI...
+                    </p>
                   </div>
                 )}
               </div>
 
               {/* Action buttons */}
               <div className="grid grid-cols-2 gap-3 mb-5">
-                <label className={`flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm text-[#123B5D] border-2 border-[#123B5D] cursor-pointer transition-colors hover:bg-[#123B5D] hover:text-white ${isSaving ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}>
+                <label
+                  className={`flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm text-[#123B5D] border-2 border-[#123B5D] cursor-pointer transition-colors hover:bg-[#123B5D] hover:text-white ${isSaving ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}`}
+                >
                   <FiCamera size={16} /> Upload File Foto
                   <input
                     type="file"
@@ -495,13 +607,18 @@ export default function DataWajahPage() {
                 <button
                   disabled={isSaving}
                   onClick={cameraOn ? stopCamera : startCamera}
-                  className={`flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm transition-colors border-2 border-[#123B5D] ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}
-                    ${cameraOn
-                      ? "bg-red-100 text-red-700 hover:bg-red-200 border-red-300"
-                      : "bg-[#123B5D] text-white hover:bg-[#0d2a3f]"
+                  className={`flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm transition-colors border-2 border-[#123B5D] ${isSaving ? "opacity-50 cursor-not-allowed" : ""}
+                    ${
+                      cameraOn
+                        ? "bg-red-100 text-red-700 hover:bg-red-200 border-red-300"
+                        : "bg-[#123B5D] text-white hover:bg-[#0d2a3f]"
                     }`}
                 >
-                  {cameraOn ? <FiCameraOff size={16} /> : <FiCamera size={16} />}
+                  {cameraOn ? (
+                    <FiCameraOff size={16} />
+                  ) : (
+                    <FiCamera size={16} />
+                  )}
                   {cameraOn ? "Tutup Kamera" : "Gunakan Kamera"}
                 </button>
               </div>
@@ -531,9 +648,15 @@ export default function DataWajahPage() {
       {/* FOOTER */}
       <footer className="bg-[#74B5BD] py-5 text-center mt-auto">
         <div className="flex justify-center items-center gap-2 mb-2">
-          <img src={logo} alt="IdentiFace Logo" className="w-24 h-auto object-contain" />
+          <img
+            src={logo}
+            alt="IdentiFace Logo"
+            className="w-24 h-auto object-contain"
+          />
         </div>
-        <p className="font-semibold text-[#123B5D]">Privacy Policy | Terms of Service</p>
+        <p className="font-semibold text-[#123B5D]">
+          Privacy Policy | Terms of Service
+        </p>
       </footer>
     </div>
   );

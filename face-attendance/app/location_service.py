@@ -1,8 +1,8 @@
 from math import radians, sin, cos, sqrt, atan2
 
-#FT UGM
-CAMPUS_LATITUDE = -7.765347557669016
-CAMPUS_LONGITUDE = 110.37221185641494
+#FT UGM: -7.765347557669016, 110.37221185641494
+CAMPUS_LATITUDE = -7.686224941671523
+CAMPUS_LONGITUDE = 110.41645606380455
 ALLOWED_RADIUS_METERS = 200
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
