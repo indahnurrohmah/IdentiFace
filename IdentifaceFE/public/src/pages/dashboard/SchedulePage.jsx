@@ -47,9 +47,9 @@ export default function SchedulePage() {
   const navigate = useNavigate();
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const firstName = user?.nama?.split(" ")[0] || "Dosen";
 
   // ── State ──────────────────────────────────────────────────────────────
+  const [profile, setProfile] = useState(null); 
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -60,19 +60,18 @@ export default function SchedulePage() {
   const [dosenCoords, setDosenCoords] = useState(null);
   const [gettingLocation, setGettingLocation] = useState(false);
 
-  const [filters, setFilters] = useState({
-    mataKuliah: "",
-    kelas: "",
-    tanggalAwal: "",
-    tanggalAkhir: "",
-  });
-
   // ── Fetch Data ─────────────────────────────────────────────────────────
   const fetchSessions = useCallback(async () => {
     setLoading(true);
     setError(null);
 
     try {
+      // 1. Fetch Profil Dosen
+      apiFetch("/lecturer/profile")
+        .then((res) => setProfile(res.data))
+        .catch(() => console.log("Gagal memuat profil"));
+
+      // 2. Fetch Jadwal Sesi Hari Ini
       const response = await apiFetch("/lecturer/sessions/today");
       console.log("Data Sesi Perkuliahan: ", response.data);
       setSessions(response.data || []);
@@ -89,7 +88,7 @@ export default function SchedulePage() {
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleToggleStatus = async (id_sesi, currentStatus) => {
-    // Kalau mau matiin sesi, langsung proses tanpa modal
+    // Kalau mau menonaktifkan sesi, langsung proses tanpa modal
     if (currentStatus === true) {
       setProcessingId(id_sesi);
       try {
@@ -107,7 +106,7 @@ export default function SchedulePage() {
       }
       return;
     }
-    // Kalau mau mulai sesi, tampilkan modal dulu
+    // Kalau mau mulai sesi, tampilkan modal pemilihan tipe sesi
     setTipeSesi("offline");
     setDosenCoords(null);
     setModalSesi({ id_sesi, currentStatus });
@@ -179,10 +178,9 @@ export default function SchedulePage() {
     navigate("/");
   };
 
-  // Mock function untuk fitur Laporan (karena endpoint laporan belum ada)
-  const handleExport = () => {
-    alert("Fitur Export Laporan sedang dalam pengembangan oleh tim Backend.");
-  };
+  // ── Data Nama Dinamis ──────────────────────────────────────────────────
+  const displayName = profile?.nama || user?.nama || "Dosen";
+  const displayFirstName = displayName.split(" ")[0];
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (
@@ -204,9 +202,9 @@ export default function SchedulePage() {
           />
         </div>
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">{user?.nama || "Dosen"}</h2>
+          <h2 className="text-2xl font-bold">{displayName}</h2>
           <div className="w-12 h-12 rounded-full border-4 border-[#123B5D] bg-[#6BAAAF] flex items-center justify-center text-white font-bold text-lg">
-            {firstName.charAt(0).toUpperCase()}
+            {displayFirstName.charAt(0).toUpperCase()}
           </div>
         </div>
       </header>
@@ -243,7 +241,7 @@ export default function SchedulePage() {
 
         {/* CONTENT */}
         <section className="flex-1 flex flex-col">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-4">
             <h1 className="text-3xl font-bold">Jadwal Perkuliahan</h1>
             <button
               onClick={fetchSessions}
@@ -264,7 +262,7 @@ export default function SchedulePage() {
           )}
 
           {/* TABLE */}
-          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-xl shadow-md overflow-hidden mb-8">
+          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-xl shadow-md overflow-hidden flex-1">
             <div className="bg-[#6BAAAF] text-white px-5 py-3 font-semibold">
               Jadwal Perkuliahan Hari Ini
             </div>
@@ -295,19 +293,13 @@ export default function SchedulePage() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td
-                        colSpan="6"
-                        className="text-center py-8 text-gray-400"
-                      >
+                      <td colSpan="6" className="text-center py-8 text-gray-400">
                         Memuat jadwal...
                       </td>
                     </tr>
                   ) : sessions.length === 0 ? (
                     <tr>
-                      <td
-                        colSpan="6"
-                        className="text-center py-8 text-gray-400"
-                      >
+                      <td colSpan="6" className="text-center py-8 text-gray-400">
                         Tidak ada jadwal perkuliahan hari ini.
                       </td>
                     </tr>
@@ -343,7 +335,6 @@ export default function SchedulePage() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
-                            {/* Tombol Mulai (Disabled jika sedang aktif) */}
                             <button
                               onClick={() =>
                                 handleToggleStatus(row.id_sesi, row.is_active)
@@ -362,7 +353,6 @@ export default function SchedulePage() {
                                 : "Mulai"}
                             </button>
 
-                            {/* Tombol Akhiri (Disabled jika sudah tertutup) */}
                             <button
                               onClick={() =>
                                 handleToggleStatus(row.id_sesi, row.is_active)
@@ -387,98 +377,6 @@ export default function SchedulePage() {
                   )}
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          {/* LAPORAN (Bagian Bawah) */}
-          <div className="mt-auto">
-            <div className="flex items-end gap-3 mb-3">
-              <h2 className="text-3xl font-bold">Laporan Akhir</h2>
-              <p className="text-sm text-gray-600 mb-1">
-                Mencetak laporan rekapitulasi kehadiran (Semester Genap
-                2025/2026)
-              </p>
-            </div>
-
-            <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-lg shadow-md p-3">
-              <div className="bg-[#6BAAAF] text-white px-4 py-2 rounded-t font-semibold">
-                Filter Laporan
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 py-5">
-                <div>
-                  <label className="block mb-2 text-sm font-semibold text-gray-700">
-                    Mata Kuliah
-                  </label>
-                  <input
-                    value={filters.mataKuliah}
-                    onChange={(e) =>
-                      setFilters({ ...filters, mataKuliah: e.target.value })
-                    }
-                    placeholder="Contoh: Kecerdasan Buatan"
-                    className="w-full h-10 border border-[#6BAAAF] rounded px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-semibold text-gray-700">
-                    Kelas
-                  </label>
-                  <input
-                    value={filters.kelas}
-                    onChange={(e) =>
-                      setFilters({ ...filters, kelas: e.target.value })
-                    }
-                    placeholder="Contoh: TI-A"
-                    className="w-full h-10 border border-[#6BAAAF] rounded px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-2 text-sm font-semibold text-gray-700">
-                    Tanggal Perkuliahan
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="date"
-                      value={filters.tanggalAwal}
-                      onChange={(e) =>
-                        setFilters({ ...filters, tanggalAwal: e.target.value })
-                      }
-                      className="w-full h-10 border border-[#6BAAAF] rounded px-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
-                    />
-                    <span className="text-gray-500">-</span>
-                    <input
-                      type="date"
-                      value={filters.tanggalAkhir}
-                      onChange={(e) =>
-                        setFilters({ ...filters, tanggalAkhir: e.target.value })
-                      }
-                      className="w-full h-10 border border-[#6BAAAF] rounded px-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-4 px-4 pb-2">
-                <button
-                  onClick={handleExport}
-                  className="bg-[#123B5D] hover:bg-[#0d2a3f] text-white px-6 py-2 rounded font-semibold text-sm transition-colors"
-                >
-                  Export CSV / PDF
-                </button>
-                <button
-                  onClick={() =>
-                    setFilters({
-                      mataKuliah: "",
-                      kelas: "",
-                      tanggalAwal: "",
-                      tanggalAkhir: "",
-                    })
-                  }
-                  className="border border-[#123B5D] text-[#123B5D] hover:bg-gray-50 px-6 py-2 rounded font-semibold text-sm transition-colors bg-white"
-                >
-                  Reset Filter
-                </button>
-              </div>
             </div>
           </div>
         </section>

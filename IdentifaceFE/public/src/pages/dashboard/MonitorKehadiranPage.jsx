@@ -32,9 +32,9 @@ export default function MonitorPage() {
   const id_sesi = searchParams.get("sesi"); // Menangkap ?sesi=... dari URL
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
-  const firstName = user?.nama?.split(" ")[0] || "Dosen";
 
   // ── State ──────────────────────────────────────────────────────────────
+  const [profile, setProfile] = useState(null); // State Profil
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -53,6 +53,18 @@ export default function MonitorPage() {
   const selectAll = students.length > 0 && students.every((s) => selectedStudents[s.nim]);
 
   // ── Fetch Data ─────────────────────────────────────────────────────────
+  
+  // Fungsi Fetch Profil
+  const fetchProfile = useCallback(async () => {
+    try {
+      const data = await apiFetch("/lecturer/profile");
+      setProfile(data);
+    } catch (err) {
+      console.log("Gagal memuat profil dosen:", err);
+    }
+  }, []);
+
+  // Fungsi Fetch Presensi
   const fetchAttendance = useCallback(async (isRefresh = false) => {
     if (!id_sesi) {
       setLoading(false);
@@ -77,8 +89,9 @@ export default function MonitorPage() {
   }, [id_sesi]);
 
   useEffect(() => {
+    fetchProfile();
     fetchAttendance();
-  }, [fetchAttendance]);
+  }, [fetchProfile, fetchAttendance]);
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleCheckboxChange = (nim) => {
@@ -187,6 +200,10 @@ export default function MonitorPage() {
     sakit: "bg-blue-100 text-blue-700 border border-blue-300",
   };
 
+  // ── Data Nama Dinamis ──────────────────────────────────────────────────
+  const displayName = profile?.nama || user?.nama || "Dosen";
+  const displayFirstName = displayName.split(" ")[0];
+
   // ── Render ─────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col bg-[#ECE7DF] relative">
@@ -203,9 +220,9 @@ export default function MonitorPage() {
           <img src={logo} alt="IdentiFace Logo" className="w-40 h-auto object-contain" />
         </div>
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">{user?.nama || "Dosen"}</h2>
+          <h2 className="text-2xl font-bold">{displayName}</h2>
           <div className="w-12 h-12 rounded-full border-4 border-[#123B5D] bg-[#6BAAAF] flex items-center justify-center text-white font-bold text-lg">
-            {firstName.charAt(0).toUpperCase()}
+            {displayFirstName.charAt(0).toUpperCase()}
           </div>
         </div>
       </header>
@@ -226,7 +243,8 @@ export default function MonitorPage() {
             </button>
           </nav>
           <button
-            onClick={() => {
+            onClick={async () => {
+              try { await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" }); } catch(e){}
               localStorage.removeItem("user");
               navigate("/");
             }}

@@ -68,8 +68,18 @@ export default function DosenDashboard() {
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [statsError, setStatsError] = useState(null);
   const [sessionsError, setSessionsError] = useState(null);
-
+  const [profile, setProfile] = useState(null);
   // ── Fetch Functions ────────────────────────────────────────────────────
+
+  const fetchProfile = useCallback(async () => {
+    try {
+      const data = await apiFetch("/lecturer/profile"); // Pastikan backend memiliki route ini
+      setProfile(data);
+    } catch (err) {
+      console.error("Gagal ambil profil:", err);
+    }
+  }, []);
+
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
     setStatsError(null);
@@ -99,7 +109,8 @@ export default function DosenDashboard() {
   useEffect(() => {
     fetchStats();
     fetchSessions();
-  }, [fetchStats, fetchSessions]);
+    fetchProfile(); // Panggil fetchProfile saat komponen mount
+  }, [fetchStats, fetchSessions, fetchProfile]);
 
   // ── Stat Cards Config ──────────────────────────────────────────────────
   const statCards = [
@@ -154,10 +165,16 @@ export default function DosenDashboard() {
       {/* Header */}
       <header className="flex items-center justify-between px-10 py-5">
         <img src={logo} alt="IdentiFace Logo" className="w-40 h-auto object-contain" />
+        
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">{user?.nama || "Dosen"}</h2>
+          {/* Mengambil nama dari API, jika belum ada gunakan fallback "Dosen" */}
+          <h2 className="text-2xl font-bold">
+              {profile?.nama || "Dosen"}
+          </h2>
+          
           <div className="w-12 h-12 rounded-full border-4 border-[#123B5D] bg-[#6BAAAF] flex items-center justify-center text-white font-bold text-lg">
-            {firstName.charAt(0).toUpperCase()}
+            {/* Inisial nama */}
+            {(profile?.nama || "D").charAt(0).toUpperCase()}
           </div>
         </div>
       </header>
@@ -196,7 +213,7 @@ export default function DosenDashboard() {
           {/* Greeting */}
           <div className="mb-5">
             <h1 className="text-3xl font-bold">
-              Selamat {getGreeting()}, {firstName}!
+              Selamat {getGreeting()}, {profile?.nama || "Dosen"}!
             </h1>
             <p className="text-sm text-gray-600">
               {formatDateID()} — Semester Genap 2025/2026

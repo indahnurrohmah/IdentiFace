@@ -3,7 +3,7 @@ const rateLimit = require('express-rate-limit');
 // General rate limiter for all API endpoints
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // Maximum 100 requests per IP
+    max: 500, // Maximum 500 requests per IP
     message: { 
         success: false, 
         message: 'Terlalu banyak permintaan dari IP ini, silakan coba lagi dalam 15 menit.', 
@@ -14,7 +14,7 @@ const apiLimiter = rateLimit({
 // Stricter rate limiter specifically for Login / Register attempts
 const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, 
-    max: 10, // Maximum 10 attempts per IP
+    max: 100, // Maximum 100 attempts per IP
     message: { 
         success: false, 
         message: 'Terlalu banyak percobaan login/register, silakan coba lagi dalam 15 menit.', 
