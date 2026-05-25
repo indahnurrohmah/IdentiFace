@@ -236,21 +236,14 @@ const getAdminReport = async ({ prodi, angkatan, id_mk, from_date, to_date, limi
 };
 
 /**
- * Get attendance summary per mahasiswa per mk (for admin export / summary view)
+ * Get attendance summary per mata kuliah (for admin export / summary view)
  */
-const getAdminSummary = async ({ prodi, angkatan, id_mk } = {}) => {
+const getAdminSummary = async ({ id_mk } = {}) => {
     const conditions = [];
     const values = [];
     let idx = 1;
 
-    if (prodi) {
-        conditions.push(`m.prodi = $${idx++}`);
-        values.push(prodi);
-    }
-    if (angkatan) {
-        conditions.push(`m.angkatan = $${idx++}`);
-        values.push(parseInt(angkatan, 10));
-    }
+    // Untuk rekapitulasi mata kuliah, filter yang relevan hanya id_mk
     if (id_mk) {
         conditions.push(`mk.id_mk = $${idx++}`);
         values.push(parseInt(id_mk, 10));
@@ -260,32 +253,20 @@ const getAdminSummary = async ({ prodi, angkatan, id_mk } = {}) => {
 
     const result = await pool.query(
         `SELECT
-           m.nim,
-           m.nama_lengkap AS nama,
-           m.prodi,
-           m.angkatan,
-           mk.kode_mk,
            mk.nama_mk,
-           COUNT(s.id_sesi) AS total_pertemuan,
-           COUNT(p.id_presensi) FILTER (WHERE p.status = 'hadir') AS hadir,
-           COUNT(p.id_presensi) FILTER (WHERE p.status = 'izin')  AS izin,
-           COUNT(s.id_sesi) - COUNT(p.id_presensi) FILTER (WHERE p.status IN ('hadir','izin')) AS alpha,
-           ROUND(
-             COUNT(p.id_presensi) FILTER (WHERE p.status = 'hadir') * 100.0
-             / NULLIF(COUNT(s.id_sesi), 0), 1
-           ) AS persentase_kehadiran
-         FROM mahasiswa m
-         JOIN kelas_mahasiswa km ON km.nim = m.nim
-         JOIN kelas k ON k.id_kelas = km.id_kelas
-         JOIN mata_kuliah mk ON mk.id_mk = k.id_mk
-         JOIN sesi_kelas s ON s.id_kelas = k.id_kelas
-         LEFT JOIN presensi p ON p.id_sesi = s.id_sesi AND p.nim = m.nim
+           mk.sks,
+           d.nama AS nama_dosen,
+           COALESCE(k.nama_kelas, 'Belum diatur') AS kelas,
+           COUNT(DISTINCT s.id_sesi) AS pertemuan_terlaksana
+         FROM kelas k
+         JOIN mata_kuliah mk ON k.id_mk = mk.id_mk
+         JOIN dosen d ON k.id_dosen = d.id_dosen
+         LEFT JOIN sesi_kelas s ON s.id_kelas = k.id_kelas AND s.is_active = false
          ${where}
-         GROUP BY m.nim, m.nama_lengkap, m.prodi, m.angkatan, mk.id_mk, mk.kode_mk, mk.nama_mk
-         ORDER BY m.angkatan DESC, m.nama_lengkap ASC, mk.nama_mk ASC`,
+         GROUP BY mk.nama_mk, mk.sks, k.nama_kelas, d.nama
+         ORDER BY mk.nama_mk ASC`,
         values
     );
-
     return result.rows;
 };
 

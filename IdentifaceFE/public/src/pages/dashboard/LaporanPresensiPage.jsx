@@ -58,6 +58,7 @@ export default function LaporanPresensiPage() {
         setMahasiswaData(Array.isArray(res.data) ? res.data : []);
       } else {
         const res = await apiFetch('/admin/attendance/summary');
+        console.log("Data Mata Kuliah dari API: ", res.data);
         setMataKuliahData(Array.isArray(res.data) ? res.data : []);
       }
     } catch (err) {
