@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 
 // --- 1. IMPORT CONFIG & DATABASE ---
 // Requiring db.js will automatically run your PostgreSQL connection test
@@ -21,9 +22,14 @@ const masterRoutes = require('./routes/masterRoutes');
 const app = express();
 
 // --- 4. GLOBAL MIDDLEWARE ---
-app.use(cors());
+app.use(cors({
+    origin: 'http://localhost:5173', // WAJIB sama persis dengan URL Frontend-mu (tanpa garis miring di akhir)
+    credentials: true                // WAJIB true agar mengizinkan pertukaran Cookie
+}));
 // Parse JSON to accept request bodies from the frontend
 app.use(express.json());
+app.use(cookieParser());
+
 // Parse URL-encoded data (optional, useful for standard form submissions)
 app.use(express.urlencoded({ extended: true })); 
 // Apply standard rate limiting (100 req/15min) to all API routes

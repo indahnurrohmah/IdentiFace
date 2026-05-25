@@ -37,3 +37,6 @@ Thumbs.db
 
 # Coverage directory used by testing tools (if you add them later)
 coverage/
+
+src/seed.js
+src/seed-credentials.txt

@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, verifyEmail, login } = require('../controllers/authController');
+const { register, verifyEmail, login, logout } = require('../controllers/authController');
 const { otpLimiter } = require('../middleware/rateLimiter'); 
 
 const router = express.Router();
@@ -16,6 +16,7 @@ router.post('/register', register);
  */
 router.post('/login', login);
 
+router.post('/logout', logout);
 /**
  * Verify user email using OTP and finalize profile creation
  * Endpoint: POST /api/auth/verify-email

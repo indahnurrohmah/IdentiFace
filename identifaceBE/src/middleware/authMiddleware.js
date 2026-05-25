@@ -1,12 +1,21 @@
 const jwt = require('jsonwebtoken');
 
 /**
- * Verify JWT token and attach decoded payload to req.user
+ * Verify JWT token from Cookie (or Header fallback) and attach decoded payload to req.user
  */
 const authenticate = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
+    // 1. Coba ambil token dari HTTP-Only Cookie terlebih dahulu
+    let token = req.cookies?.token;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // 2. Fallback: Jika tidak ada di cookie, coba cari di Header 
+    // (Berguna jika kamu sedang testing di Postman pakai Bearer Token)
+    const authHeader = req.headers['authorization'];
+    if (!token && authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.split(' ')[1];
+    }
+
+    // Jika token benar-benar tidak ada di keduanya
+    if (!token) {
         return res.status(401).json({
             success: false,
             message: 'Akses ditolak. Token tidak ditemukan.',
@@ -14,17 +23,15 @@ const authenticate = (req, res, next) => {
         });
     }
 
-    const token = authHeader.split(' ')[1];
-
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded; // { id_akun, role, iat, exp }
+        req.user = decoded; // { id_akun, role, email, iat, exp }
         next();
     } catch (err) {
         if (err.name === 'TokenExpiredError') {
             return res.status(401).json({
                 success: false,
-                message: 'Token sudah kedaluwarsa. Silakan login kembali.',
+                message: 'Token sudah kadaluarsa. Silakan login kembali.',
                 error: null
             });
         }

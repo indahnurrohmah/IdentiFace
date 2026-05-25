@@ -166,21 +166,43 @@ const login = async (req, res, next) => {
             return res.status(401).json({ success: false, message: 'Email atau password salah.', error: null });
         }
 
-        // 4. Generate the JWT token (8 hours expiration as per original code)
+        // 4. Generate the JWT token
         const token = jwt.sign(
             { id_akun: account.id_akun, role: account.role, email: account.email },
             process.env.JWT_SECRET,
             { expiresIn: '8h' } 
         );
 
+        // 5. Simpan Token di HTTP-Only Cookie
+        res.cookie('token', token, {
+            httpOnly: true, // Tidak bisa diakses oleh JavaScript (Aman dari XSS)
+            secure: process.env.NODE_ENV === 'production', // Gunakan true jika sudah HTTPS (Production)
+            sameSite: 'strict', // Mencegah serangan CSRF
+            maxAge: 8 * 60 * 60 * 1000 // Kedaluwarsa dalam 8 jam (dalam milidetik)
+        });
+
+        // 6. Kirim respons (Tidak perlu lagi mengirimkan string token di dalam JSON)
         res.json({
             success: true,
             message: 'Login berhasil.',
-            data: { token, role: account.role }
+            data: { 
+                role: account.role,
+                email: account.email,
+                id_akun: account.id_akun
+            }
         });
     } catch (error) {
         next(error);
     }
 };
 
-module.exports = { register, verifyEmail, login };
+const logout = (req, res) => {
+    res.clearCookie('token', {
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production'
+    });
+    res.json({ success: true, message: 'Logout berhasil' });
+};
+
+module.exports = { register, verifyEmail, login, logout };
