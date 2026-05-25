@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { FiRefreshCw } from "react-icons/fi";
 
-// ─── CONFIG ────────────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 async function apiFetch(path, options = {}) {
@@ -55,7 +54,11 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState(null);
-  const [processingId, setProcessingId] = useState(null); // Mencegah double-click pada tombol Mulai/Akhiri
+  const [processingId, setProcessingId] = useState(null);
+  const [modalSesi, setModalSesi] = useState(null);
+  const [tipeSesi, setTipeSesi] = useState("offline");
+  const [dosenCoords, setDosenCoords] = useState(null);
+  const [gettingLocation, setGettingLocation] = useState(false);
 
   const [filters, setFilters] = useState({
     mataKuliah: "",
@@ -68,7 +71,6 @@ export default function SchedulePage() {
   const fetchSessions = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
 
     try {
       const response = await apiFetch("/lecturer/sessions/today");
@@ -87,29 +89,89 @@ export default function SchedulePage() {
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleToggleStatus = async (id_sesi, currentStatus) => {
-    setProcessingId(id_sesi);
-    try {
-      const response = await apiFetch(`/lecturer/session/${id_sesi}/status`, {
-        method: "PATCH",
-        body: JSON.stringify({ is_active: !currentStatus }),
-      });
+    // Kalau mau matiin sesi, langsung proses tanpa modal
+    if (currentStatus === true) {
+      setProcessingId(id_sesi);
+      try {
+        const response = await apiFetch(`/lecturer/session/${id_sesi}/status`, {
+          method: "PATCH",
+          body: JSON.stringify({ is_active: false }),
+        });
+        setToast(response.message);
+        setTimeout(() => setToast(null), 3000);
+        fetchSessions();
+      } catch (err) {
+        alert("Gagal mengubah status sesi: " + err.message);
+      } finally {
+        setProcessingId(null);
+      }
+      return;
+    }
+    // Kalau mau mulai sesi, tampilkan modal dulu
+    setTipeSesi("offline");
+    setDosenCoords(null);
+    setModalSesi({ id_sesi, currentStatus });
+  };
 
-      // Munculkan notifikasi sukses
+  const handleKonfirmasiMulai = async () => {
+    if (!modalSesi) return;
+    if (tipeSesi === "offline" && !dosenCoords) {
+      alert(
+        "Lokasi belum didapatkan. Klik 'Ambil Lokasi Saya' terlebih dahulu.",
+      );
+      return;
+    }
+    setProcessingId(modalSesi.id_sesi);
+    setModalSesi(null);
+    try {
+      const body = {
+        is_active: true,
+        tipe_sesi: tipeSesi,
+        latitude: dosenCoords?.latitude ?? null,
+        longitude: dosenCoords?.longitude ?? null,
+      };
+      const response = await apiFetch(
+        `/lecturer/session/${modalSesi.id_sesi}/status`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(body),
+        },
+      );
       setToast(response.message);
       setTimeout(() => setToast(null), 3000);
-
-      // Refresh tabel jadwal
       fetchSessions();
     } catch (err) {
-      alert("Gagal mengubah status sesi: " + err.message);
+      alert("Gagal memulai sesi: " + err.message);
     } finally {
       setProcessingId(null);
     }
   };
 
+  const handleAmbilLokasi = () => {
+    setGettingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setDosenCoords({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+        setGettingLocation(false);
+      },
+      () => {
+        alert(
+          "Gagal mendapatkan lokasi. Pastikan izin lokasi sudah diberikan.",
+        );
+        setGettingLocation(false);
+      },
+    );
+  };
+
   const handleLogout = async () => {
     try {
-      await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" });
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
     } catch (e) {
       // Abaikan jika error network
     }
@@ -135,7 +197,11 @@ export default function SchedulePage() {
       {/* HEADER */}
       <header className="flex items-center justify-between px-10 py-5">
         <div className="flex items-center gap-3">
-          <img src={logo} alt="IdentiFace Logo" className="w-40 h-auto object-contain" />
+          <img
+            src={logo}
+            alt="IdentiFace Logo"
+            className="w-40 h-auto object-contain"
+          />
         </div>
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">{user?.nama || "Dosen"}</h2>
@@ -192,9 +258,9 @@ export default function SchedulePage() {
           </div>
 
           {error && (
-             <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">
-               Error memuat jadwal: {error}
-             </div>
+            <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-700 text-sm">
+              Error memuat jadwal: {error}
+            </div>
           )}
 
           {/* TABLE */}
@@ -206,22 +272,44 @@ export default function SchedulePage() {
               <table className="w-full bg-white min-w-[600px]">
                 <thead>
                   <tr className="bg-gray-50 border-b-2 border-[#6BAAAF]">
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Mata Kuliah</th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Kode MK</th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Tanggal</th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Waktu</th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Status</th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Aksi</th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Mata Kuliah
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Kode MK
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Tanggal
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Waktu
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Status
+                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
+                      Aksi
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-8 text-gray-400">Memuat jadwal...</td>
+                      <td
+                        colSpan="6"
+                        className="text-center py-8 text-gray-400"
+                      >
+                        Memuat jadwal...
+                      </td>
                     </tr>
                   ) : sessions.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="text-center py-8 text-gray-400">Tidak ada jadwal perkuliahan hari ini.</td>
+                      <td
+                        colSpan="6"
+                        className="text-center py-8 text-gray-400"
+                      >
+                        Tidak ada jadwal perkuliahan hari ini.
+                      </td>
                     </tr>
                   ) : (
                     sessions.map((row, index) => (
@@ -229,45 +317,68 @@ export default function SchedulePage() {
                         key={row.id_sesi}
                         className={`border-b transition-colors duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"} hover:bg-[#f0f9fa]`}
                       >
-                        <td className="px-4 py-3 text-sm font-medium text-gray-800">{row.nama_mk}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{row.kode_mk}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{formatDateID(row.tanggal)}</td>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                          {row.nama_mk}
+                        </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {formatTime(row.waktu_mulai)} - {formatTime(row.waktu_selesai)} WIB
+                          {row.kode_mk}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {formatDateID(row.tanggal)}
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600">
+                          {formatTime(row.waktu_mulai)} -{" "}
+                          {formatTime(row.waktu_selesai)} WIB
                         </td>
                         <td className="px-4 py-3 text-sm">
                           {row.is_active ? (
-                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded font-semibold text-xs">Berlangsung</span>
+                            <span className="bg-green-100 text-green-700 px-2 py-1 rounded font-semibold text-xs">
+                              Berlangsung
+                            </span>
                           ) : (
-                            <span className="bg-gray-200 text-gray-600 px-2 py-1 rounded font-semibold text-xs">Ditutup</span>
+                            <span className="bg-gray-200 text-gray-600 px-2 py-1 rounded font-semibold text-xs">
+                              Ditutup
+                            </span>
                           )}
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex gap-2">
                             {/* Tombol Mulai (Disabled jika sedang aktif) */}
-                            <button 
-                              onClick={() => handleToggleStatus(row.id_sesi, row.is_active)}
-                              disabled={row.is_active || processingId === row.id_sesi}
+                            <button
+                              onClick={() =>
+                                handleToggleStatus(row.id_sesi, row.is_active)
+                              }
+                              disabled={
+                                row.is_active || processingId === row.id_sesi
+                              }
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                                row.is_active 
-                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                                row.is_active
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                   : "bg-green-100 hover:bg-green-200 text-green-700"
                               }`}
                             >
-                              {processingId === row.id_sesi && !row.is_active ? "Memproses..." : "Mulai"}
+                              {processingId === row.id_sesi && !row.is_active
+                                ? "Memproses..."
+                                : "Mulai"}
                             </button>
-                            
+
                             {/* Tombol Akhiri (Disabled jika sudah tertutup) */}
-                            <button 
-                              onClick={() => handleToggleStatus(row.id_sesi, row.is_active)}
-                              disabled={!row.is_active || processingId === row.id_sesi}
+                            <button
+                              onClick={() =>
+                                handleToggleStatus(row.id_sesi, row.is_active)
+                              }
+                              disabled={
+                                !row.is_active || processingId === row.id_sesi
+                              }
                               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                                !row.is_active 
-                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                                !row.is_active
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                   : "bg-red-100 hover:bg-red-200 text-red-700"
                               }`}
                             >
-                               {processingId === row.id_sesi && row.is_active ? "Memproses..." : "Akhiri"}
+                              {processingId === row.id_sesi && row.is_active
+                                ? "Memproses..."
+                                : "Akhiri"}
                             </button>
                           </div>
                         </td>
@@ -284,7 +395,8 @@ export default function SchedulePage() {
             <div className="flex items-end gap-3 mb-3">
               <h2 className="text-3xl font-bold">Laporan Akhir</h2>
               <p className="text-sm text-gray-600 mb-1">
-                 Mencetak laporan rekapitulasi kehadiran (Semester Genap 2025/2026)
+                Mencetak laporan rekapitulasi kehadiran (Semester Genap
+                2025/2026)
               </p>
             </div>
 
@@ -295,37 +407,51 @@ export default function SchedulePage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 px-4 py-5">
                 <div>
-                  <label className="block mb-2 text-sm font-semibold text-gray-700">Mata Kuliah</label>
+                  <label className="block mb-2 text-sm font-semibold text-gray-700">
+                    Mata Kuliah
+                  </label>
                   <input
                     value={filters.mataKuliah}
-                    onChange={(e) => setFilters({ ...filters, mataKuliah: e.target.value })}
+                    onChange={(e) =>
+                      setFilters({ ...filters, mataKuliah: e.target.value })
+                    }
                     placeholder="Contoh: Kecerdasan Buatan"
                     className="w-full h-10 border border-[#6BAAAF] rounded px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-sm font-semibold text-gray-700">Kelas</label>
+                  <label className="block mb-2 text-sm font-semibold text-gray-700">
+                    Kelas
+                  </label>
                   <input
                     value={filters.kelas}
-                    onChange={(e) => setFilters({ ...filters, kelas: e.target.value })}
+                    onChange={(e) =>
+                      setFilters({ ...filters, kelas: e.target.value })
+                    }
                     placeholder="Contoh: TI-A"
                     className="w-full h-10 border border-[#6BAAAF] rounded px-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
                   />
                 </div>
                 <div>
-                  <label className="block mb-2 text-sm font-semibold text-gray-700">Tanggal Perkuliahan</label>
+                  <label className="block mb-2 text-sm font-semibold text-gray-700">
+                    Tanggal Perkuliahan
+                  </label>
                   <div className="flex items-center gap-2">
                     <input
                       type="date"
                       value={filters.tanggalAwal}
-                      onChange={(e) => setFilters({ ...filters, tanggalAwal: e.target.value })}
+                      onChange={(e) =>
+                        setFilters({ ...filters, tanggalAwal: e.target.value })
+                      }
                       className="w-full h-10 border border-[#6BAAAF] rounded px-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
                     />
                     <span className="text-gray-500">-</span>
                     <input
                       type="date"
                       value={filters.tanggalAkhir}
-                      onChange={(e) => setFilters({ ...filters, tanggalAkhir: e.target.value })}
+                      onChange={(e) =>
+                        setFilters({ ...filters, tanggalAkhir: e.target.value })
+                      }
                       className="w-full h-10 border border-[#6BAAAF] rounded px-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
                     />
                   </div>
@@ -333,14 +459,21 @@ export default function SchedulePage() {
               </div>
 
               <div className="flex gap-4 px-4 pb-2">
-                <button 
+                <button
                   onClick={handleExport}
                   className="bg-[#123B5D] hover:bg-[#0d2a3f] text-white px-6 py-2 rounded font-semibold text-sm transition-colors"
                 >
                   Export CSV / PDF
                 </button>
-                <button 
-                  onClick={() => setFilters({ mataKuliah: "", kelas: "", tanggalAwal: "", tanggalAkhir: "" })}
+                <button
+                  onClick={() =>
+                    setFilters({
+                      mataKuliah: "",
+                      kelas: "",
+                      tanggalAwal: "",
+                      tanggalAkhir: "",
+                    })
+                  }
                   className="border border-[#123B5D] text-[#123B5D] hover:bg-gray-50 px-6 py-2 rounded font-semibold text-sm transition-colors bg-white"
                 >
                   Reset Filter
@@ -354,10 +487,107 @@ export default function SchedulePage() {
       {/* FOOTER */}
       <footer className="bg-[#74B5BD] py-5 text-center mt-auto">
         <div className="flex justify-center items-center gap-2 mb-2">
-          <img src={logo} alt="IdentiFace Logo" className="w-40 h-auto object-contain" />
+          <img
+            src={logo}
+            alt="IdentiFace Logo"
+            className="w-40 h-auto object-contain"
+          />
         </div>
-        <p className="font-semibold text-[#123B5D]">Privacy Policy | Terms of Service</p>
+        <p className="font-semibold text-[#123B5D]">
+          Privacy Policy | Terms of Service
+        </p>
       </footer>
+
+      {/* Modal Pilih Tipe Sesi */}
+      {modalSesi && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-[#EFE6D3] w-full max-w-md rounded-2xl border-2 border-[#123B5D] shadow-2xl p-7">
+            <h2 className="text-xl font-bold text-[#123B5D] mb-1">
+              Mulai Sesi Presensi
+            </h2>
+            <p className="text-sm text-gray-500 mb-5">
+              Pilih mode pelaksanaan kelas
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              <button
+                onClick={() => {
+                  setTipeSesi("offline");
+                  setDosenCoords(null);
+                }}
+                className={`py-4 rounded-xl border-2 font-semibold text-sm transition-all
+                        ${
+                          tipeSesi === "offline"
+                            ? "border-[#123B5D] bg-[#123B5D] text-white"
+                            : "border-gray-300 bg-white text-gray-600 hover:border-[#123B5D]"
+                        }`}
+              >
+                📍 Offline
+                <p className="text-xs font-normal mt-1 opacity-70">
+                  Cek lokasi mahasiswa
+                </p>
+              </button>
+              <button
+                onClick={() => {
+                  setTipeSesi("online");
+                  setDosenCoords(null);
+                }}
+                className={`py-4 rounded-xl border-2 font-semibold text-sm transition-all
+                        ${
+                          tipeSesi === "online"
+                            ? "border-[#123B5D] bg-[#123B5D] text-white"
+                            : "border-gray-300 bg-white text-gray-600 hover:border-[#123B5D]"
+                        }`}
+              >
+                🌐 Online
+                <p className="text-xs font-normal mt-1 opacity-70">
+                  Lokasi tidak dicek
+                </p>
+              </button>
+            </div>
+
+            {tipeSesi === "offline" && (
+              <div className="mb-5 p-3 bg-white rounded-xl border border-gray-200">
+                {dosenCoords ? (
+                  <p className="text-sm text-green-700 font-semibold text-center">
+                    ✅ Lokasi berhasil didapatkan
+                    <span className="block text-xs text-gray-400 font-normal mt-0.5">
+                      {dosenCoords.latitude.toFixed(5)},{" "}
+                      {dosenCoords.longitude.toFixed(5)}
+                    </span>
+                  </p>
+                ) : (
+                  <button
+                    onClick={handleAmbilLokasi}
+                    disabled={gettingLocation}
+                    className="w-full py-2 rounded-lg bg-[#6BAAAF] text-white text-sm font-semibold hover:bg-[#5a9499] disabled:opacity-60"
+                  >
+                    {gettingLocation
+                      ? "Mengambil lokasi..."
+                      : "📍 Ambil Lokasi Saya"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setModalSesi(null)}
+                className="flex-1 py-2.5 rounded-lg border border-gray-400 bg-white text-sm font-bold text-gray-600 hover:bg-gray-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleKonfirmasiMulai}
+                disabled={tipeSesi === "offline" && !dosenCoords}
+                className="flex-1 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Mulai Sesi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

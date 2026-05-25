@@ -1,33 +1,33 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../../assets/logo.png";
-import { FiUser, FiLock, FiChevronDown, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiUser, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 
 // ─── CONFIG ─────────────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Role → route mapping
 const ROLE_REDIRECT = {
-  admin:     "/admin/presensi",
+  admin: "/admin/presensi",
   mahasiswa: "/student/dashboard",
-  dosen:     "/dosen/dashboard",
+  dosen: "/dosen/dashboard",
 };
 
 // ─── COMPONENT ──────────────────────────────────────────────────────────────
 export default function Login() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const initialRole = location.state?.role || "dosen";
 
   const [form, setForm] = useState({
-    email:    "",
+    email: "",
     password: "",
-    role:     initialRole,
+    role: initialRole,
   });
 
-  const [loading,       setLoading]       = useState(false);
-  const [error,         setError]         = useState("");
-  const [showPassword,  setShowPassword]  = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // ── Handlers ──────────────────────────────────────────────────────────
   const handleChange = (e) => {
@@ -35,7 +35,7 @@ export default function Login() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
@@ -53,11 +53,11 @@ const handleSubmit = async (e) => {
 
     try {
       const res = await fetch(`${API_BASE}/auth/login`, {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body:    JSON.stringify({
-          email:    form.email.trim().toLowerCase(),
+        body: JSON.stringify({
+          email: form.email.trim().toLowerCase(),
           password: form.password,
         }),
       });
@@ -76,10 +76,18 @@ const handleSubmit = async (e) => {
       if (role !== form.role) {
         setError(
           `Akun ini terdaftar sebagai ${
-            role === "dosen" ? "Dosen" : role === "mahasiswa" ? "Mahasiswa" : "Admin"
+            role === "dosen"
+              ? "Dosen"
+              : role === "mahasiswa"
+                ? "Mahasiswa"
+                : "Admin"
           }, bukan ${
-            form.role === "dosen" ? "Dosen" : form.role === "mahasiswa" ? "Mahasiswa" : "Admin"
-          }.`
+            form.role === "dosen"
+              ? "Dosen"
+              : form.role === "mahasiswa"
+                ? "Mahasiswa"
+                : "Admin"
+          }.`,
         );
         return;
       }
@@ -89,10 +97,11 @@ const handleSubmit = async (e) => {
 
       // Redirect berdasarkan role dari backend (bukan dari form)
       navigate(ROLE_REDIRECT[role] || "/");
-
     } catch (err) {
       // Network error / server down
-      setError("Tidak dapat terhubung ke server. Pastikan koneksi internet Anda aktif.");
+      setError(
+        "Tidak dapat terhubung ke server. Pastikan koneksi internet Anda aktif.",
+      );
     } finally {
       setLoading(false);
     }
@@ -142,11 +151,17 @@ const handleSubmit = async (e) => {
       {/* Background blobs */}
       <div
         className="absolute w-96 h-96 rounded-full opacity-20 -top-20 -left-20"
-        style={{ background: "#6BAAAF", animation: "floatBg 6s ease-in-out infinite" }}
+        style={{
+          background: "#6BAAAF",
+          animation: "floatBg 6s ease-in-out infinite",
+        }}
       />
       <div
         className="absolute w-64 h-64 rounded-full opacity-10 -bottom-10 -right-10"
-        style={{ background: "#123B5D", animation: "wobbleBg 4s ease-in-out infinite reverse" }}
+        style={{
+          background: "#123B5D",
+          animation: "wobbleBg 4s ease-in-out infinite reverse",
+        }}
       />
 
       {/* Card */}
@@ -156,7 +171,11 @@ const handleSubmit = async (e) => {
       >
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src={logo} alt="IdentiFace Logo" className="w-44 h-auto object-contain" />
+          <img
+            src={logo}
+            alt="IdentiFace Logo"
+            className="w-44 h-auto object-contain"
+          />
         </div>
 
         <h2 className="text-2xl font-bold text-center text-[#123B5D] mb-1">
@@ -181,7 +200,10 @@ const handleSubmit = async (e) => {
               Email
             </label>
             <div className="relative flex items-center">
-              <FiUser className="absolute left-3.5 text-gray-400 pointer-events-none" size={17} />
+              <FiUser
+                className="absolute left-3.5 text-gray-400 pointer-events-none"
+                size={17}
+              />
               <input
                 type="email"
                 name="email"
@@ -203,7 +225,10 @@ const handleSubmit = async (e) => {
               Password
             </label>
             <div className="relative flex items-center">
-              <FiLock className="absolute left-3.5 text-gray-400 pointer-events-none" size={17} />
+              <FiLock
+                className="absolute left-3.5 text-gray-400 pointer-events-none"
+                size={17}
+              />
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
@@ -225,30 +250,6 @@ const handleSubmit = async (e) => {
             </div>
           </div>
 
-          {/* Role */}
-          <div>
-            <label className="block mb-1.5 text-sm font-semibold text-gray-700">
-              Masuk Sebagai
-            </label>
-            <div className="relative flex items-center">
-              <FiChevronDown
-                className="absolute right-3.5 text-gray-400 pointer-events-none"
-                size={17}
-              />
-              <select
-                name="role"
-                value={form.role}
-                onChange={handleChange}
-                disabled={loading}
-                className="input-field w-full h-12 border border-slate-300 rounded-lg px-4 bg-white text-sm appearance-none"
-              >
-                <option value="dosen">Dosen</option>
-                <option value="mahasiswa">Mahasiswa</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-          </div>
-
           {/* Forgot password */}
           <div className="flex justify-end">
             <a
@@ -267,9 +268,20 @@ const handleSubmit = async (e) => {
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="white" strokeWidth="3"
-                    strokeDasharray="60" strokeDashoffset="20" />
+                <svg
+                  className="animate-spin w-4 h-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="white"
+                    strokeWidth="3"
+                    strokeDasharray="60"
+                    strokeDashoffset="20"
+                  />
                 </svg>
                 Memverifikasi...
               </span>

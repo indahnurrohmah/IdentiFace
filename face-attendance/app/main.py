@@ -5,7 +5,6 @@ import os
 
 from app.face_service import analyze_face
 from app.database import get_connection
-from app.location_service import validate_location
 
 app = FastAPI()
 
@@ -28,12 +27,12 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 MATCH_THRESHOLD = 0.6 # distance threshold (lower = stricter)
 
-@app.post("/register-face/{nim}")
+@app.post("/register-face/{nim:path}")
 async def register_face(nim: str, file: UploadFile = File(...)):
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File harus berupa gambar.")
     
-    temp_path = f"{UPLOAD_FOLDER}/temp_{nim}.jpg"
+    temp_path = f"{UPLOAD_FOLDER}/temp_{nim.replace('/', '_')}.jpg"
     with open(temp_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
@@ -73,15 +72,6 @@ async def verify_face(
     longitude: float = Form(...),
     file: UploadFile = File(...)
 ):
-    loc = validate_location(latitude, longitude)
-    if not loc["is_valid"]:
-        return {
-            "match": False,
-            "status": "out_of_area",
-            "distance_meters": loc["distance_meters"],
-            "max_radius": loc["max_radius"],
-            "pesan": f"Lo terlalu jauh dari kampus ({loc['distance_meters']}m). Maksimal {loc['max_radius']}m."
-        }
     
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File harus berupa gambar")

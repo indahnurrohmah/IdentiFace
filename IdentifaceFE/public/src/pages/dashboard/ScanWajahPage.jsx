@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Webcam from "react-webcam";
 import logo from "../../assets/logo.png";
 import { FiCameraOff } from "react-icons/fi";
@@ -8,25 +8,89 @@ import { LuScanFace } from "react-icons/lu";
 import { RiCameraAiFill } from "react-icons/ri";
 import { RxCross2 } from "react-icons/rx";
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
 export default function ScanWajahPage() {
   const navigate = useNavigate();
   const webcamRef = useRef(null);
   // status: 'idle' | 'scanning' | 'processing' | 'success' | 'failed'
   const [status, setStatus] = useState("idle");
+  const [searchParams] = useSearchParams();
+  const id_sesi = searchParams.get("sesi");
+
+  const [profile, setProfile] = useState(null);
+  const [coords, setCoords] = useState(null);
+  const [scanMessage, setScanMessage] = useState("");
+
+  useEffect(() => {
+    // Fetch profil mahasiswa
+    fetch(`${API_BASE}/student/profile`, { credentials: "include" })
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) setProfile(json.data);
+      })
+      .catch(() => {});
+
+    // Ambil GPS
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) =>
+          setCoords({
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+          }),
+        () => setCoords({ latitude: 0, longitude: 0 }), // fallback jika ditolak
+      );
+    }
+  }, []);
 
   const startScan = () => setStatus("scanning");
   const stopScan = () => setStatus("idle");
 
-  const captureAndProcess = useCallback(() => {
+  const captureAndProcess = useCallback(async () => {
     if (!webcamRef.current) return;
 
     setStatus("processing");
+    setScanMessage("");
 
-    setTimeout(() => {
-      setStatus("success");
-      setTimeout(() => setStatus("idle"), 3500);
-    }, 2000);
-  }, []);
+    try {
+      // 1. Ambil screenshot dari webcam sebagai base64, lalu convert ke Blob
+      const imageSrc = webcamRef.current.getScreenshot();
+      if (!imageSrc) throw new Error("Gagal mengambil gambar dari kamera.");
+
+      const res = await fetch(imageSrc);
+      const blob = await res.blob();
+      const file = new File([blob], "scan.jpg", { type: "image/jpeg" });
+
+      // 2. Siapkan FormData
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("latitude", coords?.latitude ?? 0);
+      formData.append("longitude", coords?.longitude ?? 0);
+      if (id_sesi) formData.append("id_sesi", id_sesi);
+
+      // 3. Kirim ke BE
+      const response = await fetch(`${API_BASE}/student/attendance/scan`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+
+      const json = await response.json();
+
+      if (json.success) {
+        setScanMessage("Kehadiran kamu tercatat. Terima kasih!");
+        setStatus("success");
+        setTimeout(() => setStatus("idle"), 3500);
+      } else {
+        setScanMessage(json.message || "Wajah tidak dikenali.");
+        setStatus("failed");
+      }
+    } catch (err) {
+      setScanMessage(err.message || "Terjadi kesalahan koneksi.");
+      setStatus("failed");
+    }
+  }, [coords, id_sesi]);
 
   const steps = ["Kamera", "Scanning", "Proses", "Selesai"];
   const stepIndex = {
@@ -94,7 +158,9 @@ export default function ScanWajahPage() {
           className="w-40 h-auto object-contain"
         />
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">Bambang Pamungkas</h2>
+          <h2 className="text-2xl font-bold">
+            {profile?.nama_lengkap || "Mahasiswa"}
+          </h2>
           <div className="w-12 h-12 rounded-full border-4 border-[#123B5D]" />
         </div>
       </header>
@@ -135,7 +201,12 @@ export default function ScanWajahPage() {
             <div className="mb-5">
               <h1 className="text-2xl font-bold">Scan Wajah</h1>
               <p className="text-sm text-gray-600">
-                Bambang Pamungkas — 29/12345656/SA321
+                {profile?.nama_lengkap || "..."} — {profile?.nim || "..."}
+                {!id_sesi && (
+                  <span className="ml-2 text-red-500 font-semibold">
+                    (Tidak ada sesi aktif)
+                  </span>
+                )}
               </p>
             </div>
 
@@ -254,14 +325,20 @@ export default function ScanWajahPage() {
                     Presensi Berhasil!
                   </p>
                   <p className="text-green-300 text-sm mt-1">
-                    Bambang Pamungkas
+                    {profile?.nama_lengkap || ""}
                   </p>
                   <p className="text-green-400 text-xs mt-0.5">
-                    Kecerdasan Buatan — 07.30 WIB
+                    {new Date().toLocaleTimeString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}{" "}
+                    WIB
                   </p>
                 </div>
               )}
 
+              {/* FAILED overlay */}
+              {/* FAILED overlay */}
               {/* FAILED overlay */}
               {status === "failed" && (
                 <div className="absolute inset-0 bg-red-950/85 flex flex-col items-center justify-center result-appear">
@@ -269,10 +346,13 @@ export default function ScanWajahPage() {
                     <RxCross2 size={28} />
                   </div>
                   <p className="text-white font-bold text-lg">
-                    Wajah Tidak Dikenali
+                    {scanMessage?.toLowerCase().includes("jauh") ||
+                    scanMessage?.toLowerCase().includes("lokasi")
+                      ? "Di Luar Jangkauan"
+                      : "Wajah Tidak Dikenali"}
                   </p>
-                  <p className="text-red-300 text-sm mt-1">
-                    Pastikan wajah terlihat jelas
+                  <p className="text-red-300 text-sm mt-1 text-center px-4">
+                    {scanMessage || "Pastikan wajah terlihat jelas"}
                   </p>
                 </div>
               )}
@@ -286,9 +366,11 @@ export default function ScanWajahPage() {
                 'Wajah terdeteksi — tekan "Ambil & Proses" jika posisi sudah pas'}
               {status === "processing" &&
                 "Sistem sedang mencocokkan wajah dengan database..."}
-              {status === "success" && "Kehadiran kamu tercatat. Terima kasih!"}
+              {status === "success" &&
+                (scanMessage || "Kehadiran kamu tercatat. Terima kasih!")}
               {status === "failed" &&
-                "Wajah tidak cocok dengan database. Hubungi admin jika ada masalah."}
+                (scanMessage ||
+                  "Wajah tidak cocok. Hubungi admin jika ada masalah.")}
             </p>
 
             {/* Action buttons */}
