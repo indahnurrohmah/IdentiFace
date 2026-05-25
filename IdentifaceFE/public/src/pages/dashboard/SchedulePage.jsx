@@ -68,8 +68,11 @@ export default function SchedulePage() {
   const fetchSessions = useCallback(async () => {
     setLoading(true);
     setError(null);
+    
+
     try {
       const response = await apiFetch("/lecturer/sessions/today");
+      console.log("Data Sesi Perkuliahan: ", response.data);
       setSessions(response.data || []);
     } catch (err) {
       setError(err.message);

@@ -17,6 +17,7 @@ const classRepository = {
                 mk.kode_mk,
                 k.tahun_ajaran, 
                 k.semester, 
+                sk.tanggal,
                 sk.waktu_mulai, 
                 sk.waktu_selesai, 
                 sk.is_active

@@ -97,4 +97,26 @@ const getDashboardStats = async (req, res, next) => {
     } catch (error) { next(error); }
 };
 
-module.exports = { getTodaySessions, toggleSessionStatus, getLiveAttendance, getDashboardStats };
+/**
+ * Get logged-in lecturer profile
+ * Endpoint: GET /api/lecturer/profile
+ */
+const getLecturerProfile = async (req, res, next) => {
+    try {
+        const lecturer = await lecturerRepository.findByAccountId(req.user.id_akun);
+        if (!lecturer) {
+            return res.status(404).json({ success: false, message: 'Profil dosen tidak ditemukan.' });
+        }
+        res.json({ success: true, data: lecturer });
+    } catch (error) {
+        next(error);
+    }
+};
+
+module.exports = { 
+    getTodaySessions, 
+    toggleSessionStatus, 
+    getLiveAttendance, 
+    getDashboardStats, 
+    getLecturerProfile 
+};

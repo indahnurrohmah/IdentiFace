@@ -9,6 +9,7 @@ const {
 const { authenticate, authorize } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
+
 const router = express.Router();
 
 // Protect routes: Logged-in 'admin' only
