@@ -1,59 +1,88 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { LuUsers, LuUserRoundCheck, LuUserRoundX, LuScanFace } from "react-icons/lu";
 import { FiRefreshCw, FiCameraOff, FiCamera } from "react-icons/fi";
 
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    credentials: "include", // WAJIB untuk mengirim HTTP-Only Cookie
+  });
+
+  if (res.status === 401) {
+    localStorage.removeItem("user");
+    window.location.href = "/";
+    return null;
+  }
+
+  const json = await res.json();
+  if (!json.success) throw new Error(json.message || "Request gagal.");
+  return json; // Mengembalikan full json agar bisa membaca message
+}
+
+// ─── MAIN COMPONENT ────────────────────────────────────────────────────────
 export default function DataWajahPage() {
   const navigate = useNavigate();
+  
+  // Ambil profil admin dari localStorage
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  // ── State ──────────────────────────────────────────────────────────────
+  const [dataWajah, setDataWajah] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  const [toast, setToast] = useState(null);
+  
+  // State Filter
+  const [search, setSearch] = useState("");
+  const [filterProdi, setFilterProdi] = useState("Semua Prodi");
+
+  // State Modal & Kamera
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [cameraOn, setCameraOn] = useState(false);
   const [scanStep, setScanStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
+
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
-  const dataWajahTable = [
-    [
-      "Hamba Allah",
-      "29/123456/TK/12345",
-      "Teknologi Informasi",
-      "Mahasiswa",
-      "Terdaftar",
-      "2024-12-01",
-    ],
-    [
-      "Hamba Allah",
-      "29/123456/TK/12345",
-      "Teknologi Informasi",
-      "Mahasiswa",
-      "Belum",
-      "2024-12-01",
-    ],
-    [
-      "Hamba Allah",
-      "29/123456/TK/12345",
-      "Teknologi Informasi",
-      "Dosen",
-      "Terdaftar",
-      "2024-12-01",
-    ],
-  ];
+  // ── Fetch Data ─────────────────────────────────────────────────────────
+  const fetchStudents = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    else setLoading(true);
+    setError(null);
 
-  const statusClass = {
-    Terdaftar: "bg-green-300",
-    Belum: "bg-red-300",
-  };
+    try {
+      // Memanggil endpoint backend dengan parameter query opsional
+      // Catatan: Pastikan backend support query parameter ini
+      const queryParams = new URLSearchParams();
+      if (search) queryParams.append("search", search);
+      if (filterProdi !== "Semua Prodi") queryParams.append("prodi", filterProdi);
 
-  const [refreshing, setRefreshing] = useState(false);
-  const handleRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      window.location.reload();
-    }, 800);
-  };
+      const response = await apiFetch(`/admin/students?${queryParams.toString()}`);
+      setDataWajah(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [search, filterProdi]);
 
+  useEffect(() => {
+    // Delay fetch saat mengetik pencarian (Debounce manual sederhana)
+    const timeout = setTimeout(() => fetchStudents(), 500);
+    return () => clearTimeout(timeout);
+  }, [fetchStudents]);
+
+  // ── Logic Kamera & Modal ────────────────────────────────────────────────
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -61,12 +90,11 @@ export default function DataWajahPage() {
       setCameraOn(true);
       setScanStep(1);
     } catch (error) {
-      alert("Kamera tidak bisa dibuka. Pastikan izin kamera sudah diberikan.");
+      alert("Kamera tidak bisa dibuka. Pastikan izin kamera pada browser sudah diberikan.");
       console.error(error);
     }
   };
 
-  // Assign stream ke video element SETELAH dia muncul di DOM
   useEffect(() => {
     if (cameraOn && videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current;
@@ -87,35 +115,124 @@ export default function DataWajahPage() {
     setSelectedRow(null);
     setSelectedFile(null);
     setScanStep(0);
+    setIsSaving(false);
   };
 
-  const openModal = (row) => {
-    setSelectedRow(row);
+  const openModal = (userRow) => {
+    setSelectedRow(userRow);
     setSelectedFile(null);
     setScanStep(0);
     setCameraOn(false);
     setIsModalOpen(true);
   };
 
-  return (
-    <div className="min-h-screen flex flex-col bg-[#ECE7DF]">
-      <header className="flex items-center justify-between px-10 py-5">
-        <img
-          src={logo}
-          alt="IdentiFace Logo"
-          className="w-40 h-auto object-contain"
-        />
+  // Fungsi untuk menangkap frame dari Video (Kamera) menjadi Blob/File
+  const captureImageFromVideo = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement("canvas");
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => {
+          resolve(new File([blob], "capture.jpg", { type: "image/jpeg" }));
+        }, "image/jpeg");
+      });
+    }
+    return null;
+  };
 
+  const handleSaveFaceData = async () => {
+    let fileToUpload = selectedFile;
+
+    // Jika sedang menggunakan kamera, ambil gambar dari frame video saat ini
+    if (cameraOn && !fileToUpload) {
+      fileToUpload = await captureImageFromVideo();
+    }
+
+    if (!fileToUpload) {
+      alert("Silakan buka kamera atau upload foto terlebih dahulu.");
+      return;
+    }
+
+    setIsSaving(true);
+    setScanStep(2); // Step Mapping / Proses AI
+
+    try {
+      const formData = new FormData();
+      formData.append("file", fileToUpload);
+
+      // Mengirim POST ke controller admin: registerFaceData
+      const response = await fetch(`${API_BASE}/admin/face-data/${selectedRow.nim}/register`, {
+        method: "POST",
+        credentials: "include",
+        body: formData, // Browser otomatis set Content-Type ke multipart/form-data
+      });
+
+      const json = await response.json();
+
+      if (!response.ok || !json.success) {
+        throw new Error(json.message || "Gagal mendaftarkan wajah.");
+      }
+
+      setScanStep(3); // Step Selesai
+      setToast(`Wajah ${selectedRow.nama_lengkap || selectedRow.nama} berhasil didaftarkan!`);
+      
+      setTimeout(() => {
+        setToast(null);
+        closeModal();
+        fetchStudents(); // Refresh tabel setelah sukses
+      }, 2000);
+
+    } catch (err) {
+      alert("Terjadi kesalahan: " + err.message);
+      setScanStep(1); // Kembali ke step sebelumnya jika gagal
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" });
+    } catch (e) {}
+    localStorage.removeItem("user");
+    navigate("/");
+  };
+
+  // ── Perhitungan Statistik ─────────────────────────────────────────────
+  // Asumsi atribut backend: `is_registered` atau `face_registered`
+  const totalData = dataWajah.length;
+  const registeredCount = dataWajah.filter(d => d.is_registered === true || d.status_wajah === "Terdaftar").length;
+  const unregisteredCount = totalData - registeredCount;
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[#ECE7DF] relative">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="absolute top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all">
+          {toast}
+        </div>
+      )}
+
+      {/* HEADER */}
+      <header className="flex items-center justify-between px-10 py-5">
+        <img src={logo} alt="IdentiFace Logo" className="w-40 h-auto object-contain" />
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">Username</h2>
-          <div className="w-12 h-12 rounded-full border-4 border-[#123B5D]" />
+          <h2 className="text-2xl font-bold">{user?.nama || "Administrator"}</h2>
+          <div className="w-12 h-12 rounded-full border-4 border-[#123B5D] bg-[#6BAAAF] flex items-center justify-center text-white font-bold text-lg">
+            {user?.nama ? user.nama.charAt(0).toUpperCase() : "A"}
+          </div>
         </div>
       </header>
 
+      {/* MAIN */}
       <main className="flex-1 px-10 pb-10 flex gap-8">
+        {/* SIDEBAR */}
         <aside className="w-64 bg-[#6BAAAF] rounded-lg shadow-md px-5 py-7 flex flex-col">
           <h2 className="text-center text-xl font-bold mb-6">Menu Admin</h2>
-
           <nav className="space-y-3">
             <button
               onClick={() => navigate("/admin/presensi")}
@@ -123,175 +240,131 @@ export default function DataWajahPage() {
             >
               Laporan Presensi
             </button>
-
             <button className="w-full h-10 rounded bg-[#123B5D] text-white font-semibold">
-              Daftar Wajah
+              Data Wajah
             </button>
           </nav>
-
           <button
-            onClick={() => navigate("/")}
-            className="mt-auto w-full h-10 rounded bg-[#B82410] text-white font-semibold"
+            onClick={handleLogout}
+            className="mt-auto w-full h-10 rounded bg-[#B82410] text-white font-semibold hover:bg-[#9a1d0d] transition-colors"
           >
             Keluar
           </button>
         </aside>
 
-        <section className="flex-1">
+        {/* CONTENT */}
+        <section className="flex-1 flex flex-col">
           <div className="flex items-start justify-between mb-5">
             <div>
               <h1 className="text-3xl font-bold">Data Wajah</h1>
               <p className="text-sm text-gray-600">
-                Kelola data face recognition mahasiswa & dosen
+                Kelola data face recognition mahasiswa
               </p>
             </div>
-
             <button
-              onClick={handleRefresh}
-              disabled={refreshing}
+              onClick={() => fetchStudents(true)}
+              disabled={refreshing || loading}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold text-sm text-white transition-all
-                ${
-                  refreshing
-                    ? "bg-[#123B5D]/60 cursor-not-allowed"
-                    : "bg-[#123B5D] hover:bg-[#0d2a3f] hover:shadow-md active:scale-95"
-                }`}
+                ${refreshing || loading ? "bg-[#123B5D]/60 cursor-not-allowed" : "bg-[#123B5D] hover:bg-[#0d2a3f] hover:shadow-md active:scale-95"}`}
             >
-              <FiRefreshCw
-                size={16}
-                className={refreshing ? "animate-spin" : ""}
-              />
+              <FiRefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
               {refreshing ? "Memperbarui..." : "Refresh"}
             </button>
           </div>
 
+          {/* Statistik Box */}
           <div className="grid grid-cols-3 gap-5 mb-5">
             {[
-              { value: "3", label: "Total Data", icon: <LuUsers size={64} /> },
-              {
-                value: "2",
-                label: "Terdaftar",
-                icon: <LuUserRoundCheck size={64} />,
-              },
-              {
-                value: "1",
-                label: "Belum Terdaftar",
-                icon: <LuUserRoundX size={64} />,
-              },
+              { value: loading ? "-" : totalData, label: "Total Data", icon: <LuUsers size={64} /> },
+              { value: loading ? "-" : registeredCount, label: "Terdaftar", icon: <LuUserRoundCheck size={64} /> },
+              { value: loading ? "-" : unregisteredCount, label: "Belum Terdaftar", icon: <LuUserRoundX size={64} /> },
             ].map(({ value, label, icon }) => (
-              <div
-                key={label}
-                className="bg-[#6BAAAF] rounded-2xl shadow-md px-6 py-4 h-24 relative overflow-hidden"
-              >
-                <div className="absolute -right-3 -bottom-3 text-white opacity-20">
-                  {icon}
-                </div>
+              <div key={label} className="bg-[#6BAAAF] rounded-2xl shadow-md px-6 py-4 h-24 relative overflow-hidden">
+                <div className="absolute -right-3 -bottom-3 text-white opacity-20">{icon}</div>
                 <h2 className="text-3xl font-bold text-white">{value}</h2>
                 <p className="text-sm text-white/80">{label}</p>
               </div>
             ))}
           </div>
 
+          {/* Filter */}
           <div className="bg-[#EFE6D3] border border-[#123B5D] rounded-lg shadow-md p-3 mb-5">
             <div className="grid grid-cols-4 gap-4">
               <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cari nama atau NIM..."
-                className="h-8 rounded px-3 text-sm border border-[#6BAAAF]"
+                className="h-9 rounded px-3 text-sm border border-[#6BAAAF] focus:outline-none focus:ring-1 focus:ring-[#123B5D]"
               />
-
-              <select className="h-8 rounded px-3 text-sm border border-[#6BAAAF]">
-                <option>Semua Peran</option>
-                <option>Mahasiswa</option>
-                <option>Dosen</option>
-              </select>
-
-              <select className="h-8 rounded px-3 text-sm border border-[#6BAAAF]">
-                <option>Semua Prodi</option>
-              </select>
-
-              <select className="h-8 rounded px-3 text-sm border border-[#6BAAAF]">
-                <option>Semua Status</option>
-                <option>Terdaftar</option>
-                <option>Belum Terdaftar</option>
+              {/* Note: Disembunyikan select lain sementara, karena backend '/students' biasanya fokus ke filter prodi/angkatan */}
+              <select 
+                value={filterProdi}
+                onChange={(e) => setFilterProdi(e.target.value)}
+                className="h-9 rounded px-3 text-sm border border-[#6BAAAF] focus:outline-none"
+              >
+                <option value="Semua Prodi">Semua Prodi</option>
+                <option value="Teknologi Informasi">Teknologi Informasi</option>
+                <option value="Sistem Informasi">Sistem Informasi</option>
               </select>
             </div>
           </div>
 
-          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-xl shadow-md overflow-hidden">
+          {/* Table */}
+          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-xl shadow-md overflow-hidden flex-1">
             <div className="bg-[#6BAAAF] text-white px-5 py-3 font-semibold">
               Daftar Data Wajah
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full bg-white min-w-[600px]">
+              <table className="w-full bg-white min-w-[700px]">
                 <thead>
                   <tr className="bg-gray-50 border-b-2 border-[#6BAAAF]">
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
-                      Nama
-                    </th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
-                      NIM
-                    </th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
-                      Prodi
-                    </th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
-                      Peran
-                    </th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
-                      Status
-                    </th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
-                      Update Terakhir
-                    </th>
-                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">
-                      Aksi
-                    </th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">NIM / ID</th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Nama</th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Prodi</th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Status Wajah</th>
+                    <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {dataWajahTable.map((row, index) => (
-                    <tr
-                      key={index}
-                      className={`border-b transition-colors duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"} hover:bg-[#f0f9fa]`}
-                    >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-800">
-                        {row[0]}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {row[1]}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {row[2]}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="px-3 py-1 rounded-full border border-[#6BAAAF] text-xs text-gray-600">
-                          {row[3]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`${statusClass[row[4]]} px-3 py-1 rounded-full text-xs font-semibold`}
-                        >
-                          {row[4]}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">
-                        {row[5]}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => openModal(row)}
-                            className="bg-[#123B5D] hover:bg-[#0d2a3f] text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                          >
-                            Update
-                          </button>
-                          <button className="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
-                            Hapus
-                          </button>
-                        </div>
-                      </td>
+                  {loading ? (
+                    <tr>
+                      <td colSpan="5" className="text-center py-10 text-gray-400">Memuat data...</td>
                     </tr>
-                  ))}
+                  ) : error ? (
+                     <tr>
+                      <td colSpan="5" className="text-center py-10 text-red-500">Error: {error}</td>
+                    </tr>
+                  ) : dataWajah.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="text-center py-10 text-gray-400">Tidak ada data ditemukan.</td>
+                    </tr>
+                  ) : (
+                    dataWajah.map((row, index) => {
+                      // Menentukan status terdaftar dari API backend
+                      const isRegistered = row.is_registered === true || row.status_wajah === "Terdaftar";
+                      
+                      return (
+                        <tr key={row.nim || index} className={`border-b transition-colors duration-150 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"} hover:bg-[#f0f9fa]`}>
+                          <td className="px-4 py-3 text-sm text-gray-600 font-medium">{row.nim}</td>
+                          <td className="px-4 py-3 text-sm font-bold text-gray-800">{row.nama_lengkap || row.nama}</td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{row.prodi || "-"}</td>
+                          <td className="px-4 py-3">
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${isRegistered ? "bg-green-200 text-green-800" : "bg-red-200 text-red-800"}`}>
+                              {isRegistered ? "Terdaftar" : "Belum"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => openModal(row)}
+                              className="bg-[#123B5D] hover:bg-[#0d2a3f] text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors shadow-sm"
+                            >
+                              {isRegistered ? "Perbarui Wajah" : "Daftarkan Wajah"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -299,6 +372,7 @@ export default function DataWajahPage() {
         </section>
       </main>
 
+      {/* Modal Pendaftaran Wajah */}
       {isModalOpen && selectedRow && (
         <>
           <style>{`
@@ -325,47 +399,41 @@ export default function DataWajahPage() {
             .corner-pulse-modal { animation: cornerPulse 1.4s ease-in-out infinite; }
           `}</style>
 
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
-            <div className="modal-card bg-[#EFE6D3] w-full max-w-[540px] rounded-2xl border border-[#123B5D] shadow-2xl p-7">
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4 backdrop-blur-sm">
+            <div className="modal-card bg-[#EFE6D3] w-full max-w-[540px] rounded-2xl border-2 border-[#123B5D] shadow-2xl p-7">
 
               {/* Header */}
-              <h2 className="text-2xl font-bold text-[#123B5D] mb-0.5">Update Data Wajah</h2>
+              <h2 className="text-2xl font-bold text-[#123B5D] mb-0.5">Mendaftarkan Wajah</h2>
               <p className="text-sm font-semibold text-gray-500 mb-5">
-                {selectedRow[0]} — {selectedRow[1]}
+                {selectedRow.nama_lengkap || selectedRow.nama} — {selectedRow.nim}
               </p>
 
               {/* Step indicator */}
-              {(() => {
-                const steps = ["Input", "Deteksi", "Mapping", "Selesai"];
-                return (
-                  <div className="flex items-center mb-5">
-                    {steps.map((label, i) => {
-                      const done = i < scanStep;
-                      const active = i === scanStep;
-                      return (
-                        <div key={label} className="flex items-center flex-1 last:flex-none">
-                          <div className="flex flex-col items-center">
-                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500
-                              ${done ? "bg-[#6BAAAF] text-white" : active ? "bg-[#123B5D] text-white ring-2 ring-[#123B5D] ring-offset-2" : "bg-gray-200 text-gray-400"}`}>
-                              {done ? "✓" : i + 1}
-                            </div>
-                            <span className={`text-[10px] font-semibold mt-1
-                              ${active ? "text-[#123B5D]" : done ? "text-[#6BAAAF]" : "text-gray-400"}`}>
-                              {label}
-                            </span>
-                          </div>
-                          {i < steps.length - 1 && (
-                            <div className={`flex-1 h-px mb-4 mx-1 transition-all duration-500 ${done ? "bg-[#6BAAAF]" : "bg-gray-300"}`} />
-                          )}
+              <div className="flex items-center mb-5">
+                {["Input", "Deteksi AI", "Selesai"].map((label, i) => {
+                  const done = i < scanStep;
+                  const active = i === scanStep;
+                  return (
+                    <div key={label} className="flex items-center flex-1 last:flex-none">
+                      <div className="flex flex-col items-center">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500
+                          ${done ? "bg-[#6BAAAF] text-white" : active ? "bg-[#123B5D] text-white ring-2 ring-[#123B5D] ring-offset-2" : "bg-gray-300 text-gray-500"}`}>
+                          {done ? "✓" : i + 1}
                         </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+                        <span className={`text-[10px] font-semibold mt-1 ${active ? "text-[#123B5D]" : done ? "text-[#6BAAAF]" : "text-gray-500"}`}>
+                          {label}
+                        </span>
+                      </div>
+                      {i < 2 && (
+                        <div className={`flex-1 h-px mb-4 mx-1 transition-all duration-500 ${done ? "bg-[#6BAAAF]" : "bg-gray-300"}`} />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
 
               {/* Camera / preview area */}
-              <div className="bg-[#0d1117] rounded-2xl h-56 relative overflow-hidden mb-4">
+              <div className="bg-[#0d1117] rounded-2xl h-64 relative overflow-hidden mb-5 border border-gray-700 shadow-inner">
                 {cameraOn ? (
                   <>
                     <video
@@ -374,43 +442,48 @@ export default function DataWajahPage() {
                       playsInline
                       muted
                       className="w-full h-full object-cover"
+                      style={{ transform: "scaleX(-1)" }} // Mirror effect seperti cermin
                     />
-                    {/* Scan line */}
-                    <div className="scan-line-modal" />
-                    {/* Corner brackets */}
+                    {isSaving && <div className="scan-line-modal" />}
                     <div className="corner-pulse-modal absolute top-4 left-4 w-9 h-9 border-t-[3px] border-l-[3px] border-[#6BAAAF] rounded-tl-lg" />
                     <div className="corner-pulse-modal absolute top-4 right-4 w-9 h-9 border-t-[3px] border-r-[3px] border-[#6BAAAF] rounded-tr-lg" />
                     <div className="corner-pulse-modal absolute bottom-4 left-4 w-9 h-9 border-b-[3px] border-l-[3px] border-[#6BAAAF] rounded-bl-lg" />
                     <div className="corner-pulse-modal absolute bottom-4 right-4 w-9 h-9 border-b-[3px] border-r-[3px] border-[#6BAAAF] rounded-br-lg" />
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-1.5 text-center">
-                      <p className="text-[#6BAAAF] text-xs font-bold tracking-widest">SCANNING WAJAH...</p>
-                    </div>
                   </>
                 ) : selectedFile ? (
                   <div className="w-full h-full flex flex-col items-center justify-center">
-                    <LuScanFace size={44} className="text-[#6BAAAF] mb-2" />
-                    <p className="text-white text-sm font-semibold">{selectedFile.name}</p>
-                    <p className="text-gray-400 text-xs mt-1">Foto siap diproses</p>
+                    <LuScanFace size={50} className="text-[#6BAAAF] mb-3" />
+                    <p className="text-white text-sm font-semibold px-4 text-center">{selectedFile.name}</p>
+                    <p className="text-gray-400 text-xs mt-1">Foto siap dikirim ke AI</p>
                   </div>
                 ) : (
                   <div className="w-full h-full flex flex-col items-center justify-center">
                     <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mb-3 ring-4 ring-gray-700">
                       <FiCameraOff size={30} className="text-gray-500" />
                     </div>
-                    <p className="text-gray-400 text-sm">Kamera belum aktif</p>
-                    <p className="text-gray-600 text-xs mt-1">Upload foto atau buka kamera</p>
+                    <p className="text-gray-400 text-sm">Kamera tidak aktif</p>
+                    <p className="text-gray-600 text-xs mt-1">Pilih metode di bawah</p>
+                  </div>
+                )}
+
+                {/* Overlay Loading saat AI Memproses */}
+                {isSaving && (
+                  <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10 backdrop-blur-[2px]">
+                     <FiRefreshCw size={36} className="text-white animate-spin mb-3" />
+                     <p className="text-white font-bold tracking-widest text-sm">MEMPROSES AI...</p>
                   </div>
                 )}
               </div>
 
               {/* Action buttons */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <label className="flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-500 rounded-lg py-2.5 font-semibold text-sm text-white cursor-pointer transition-colors">
-                  <FiCamera size={16} /> Upload Foto
+              <div className="grid grid-cols-2 gap-3 mb-5">
+                <label className={`flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm text-[#123B5D] border-2 border-[#123B5D] cursor-pointer transition-colors hover:bg-[#123B5D] hover:text-white ${isSaving ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}>
+                  <FiCamera size={16} /> Upload File Foto
                   <input
                     type="file"
                     accept="image/*"
                     className="hidden"
+                    disabled={isSaving}
                     onChange={(e) => {
                       setSelectedFile(e.target.files[0]);
                       stopCamera();
@@ -420,31 +493,34 @@ export default function DataWajahPage() {
                 </label>
 
                 <button
+                  disabled={isSaving}
                   onClick={cameraOn ? stopCamera : startCamera}
-                  className={`flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm transition-colors
+                  className={`flex items-center justify-center gap-2 rounded-lg py-2.5 font-semibold text-sm transition-colors border-2 border-[#123B5D] ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}
                     ${cameraOn
-                      ? "bg-red-100 hover:bg-red-200 text-red-700"
-                      : "bg-[#6BAAAF] hover:bg-[#5a9499] text-white"
+                      ? "bg-red-100 text-red-700 hover:bg-red-200 border-red-300"
+                      : "bg-[#123B5D] text-white hover:bg-[#0d2a3f]"
                     }`}
                 >
                   {cameraOn ? <FiCameraOff size={16} /> : <FiCamera size={16} />}
-                  {cameraOn ? "Tutup Kamera" : "Buka Kamera"}
+                  {cameraOn ? "Tutup Kamera" : "Gunakan Kamera"}
                 </button>
               </div>
 
               {/* Footer buttons */}
-              <div className="flex justify-end gap-3 mt-2">
+              <div className="flex justify-end gap-3 pt-3 border-t border-gray-300">
                 <button
+                  disabled={isSaving}
                   onClick={closeModal}
-                  className="px-5 py-2.5 rounded-lg border border-gray-300 bg-white text-sm font-semibold hover:bg-gray-50 transition-colors"
+                  className="px-6 py-2 rounded-lg border border-gray-400 bg-white text-sm font-bold text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
                 >
-                  Cancel
+                  Batal
                 </button>
                 <button
-                  onClick={closeModal}
-                  className="px-5 py-2.5 rounded-lg bg-[#123B5D] hover:bg-[#0d2a3f] text-white text-sm font-semibold transition-colors"
+                  disabled={isSaving || (!cameraOn && !selectedFile)}
+                  onClick={handleSaveFaceData}
+                  className="px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-bold transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Save
+                  {isSaving ? "Menyimpan..." : "Daftarkan Sekarang"}
                 </button>
               </div>
             </div>
@@ -452,15 +528,12 @@ export default function DataWajahPage() {
         </>
       )}
 
-      <footer className="bg-[#74B5BD] py-5 text-center">
+      {/* FOOTER */}
+      <footer className="bg-[#74B5BD] py-5 text-center mt-auto">
         <div className="flex justify-center items-center gap-2 mb-2">
-          <img
-            src={logo}
-            alt="IdentiFace Logo"
-            className="w-24 h-auto object-contain"
-          />
+          <img src={logo} alt="IdentiFace Logo" className="w-24 h-auto object-contain" />
         </div>
-        <p className="font-semibold">Privacy Policy | Terms of Service</p>
+        <p className="font-semibold text-[#123B5D]">Privacy Policy | Terms of Service</p>
       </footer>
     </div>
   );

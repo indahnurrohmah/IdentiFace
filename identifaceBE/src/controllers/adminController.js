@@ -1,6 +1,7 @@
 const aiService = require('../services/aiService');
 const fs = require('fs');
-
+const studentRepository = require('../repositories/studentRepository');
+const attendanceRepository = require('../repositories/attendanceRepository');
 /**
  * Register student face data to the AI system
  * Endpoint: POST /api/admin/face-data/:nim/register
