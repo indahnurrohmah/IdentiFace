@@ -145,15 +145,19 @@ const getAllStudents = async (req, res, next) => {
  * Get detailed attendance report timeline for admin
  * Endpoint: GET /api/admin/attendance/report
  */
+/**
+ * Get detailed attendance report timeline for admin
+ * Endpoint: GET /api/admin/attendance/report
+ */
 const getAttendanceReport = async (req, res, next) => {
     try {
-        const { prodi, angkatan, id_mk, from_date, to_date, limit, page } = req.query;
+        const { search, prodi, angkatan, id_mk, status, from_date, to_date, limit, page } = req.query;
         
-        const parsedLimit = parseInt(limit, 10) || 100;
+        const parsedLimit = parseInt(limit, 10) || 50; // Dibatasi 50 agar tidak berat
         const offset = ((parseInt(page, 10) || 1) - 1) * parsedLimit;
 
         const report = await attendanceRepository.getAdminReport({
-            prodi, angkatan, id_mk, from_date, to_date, limit: parsedLimit, offset
+            search, prodi, angkatan, id_mk, status, from_date, to_date, limit: parsedLimit, offset
         });
 
         res.json({ success: true, message: 'Laporan presensi berhasil diambil.', data: report });

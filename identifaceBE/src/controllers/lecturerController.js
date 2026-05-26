@@ -165,10 +165,41 @@ const getLecturerProfile = async (req, res, next) => {
   }
 };
 
+/**
+ * Update attendance status manually by Lecturer
+ * Endpoint: PATCH /api/lecturer/session/:id_sesi/attendance
+ */
+const updateAttendanceManual = async (req, res, next) => {
+  try {
+    const { id_sesi } = req.params;
+    const { nim, status } = req.body;
+
+    // Menggunakan upsert agar otomatis membuat record jika sebelumnya Alfa (belum absen)
+    const updated = await attendanceRepository.upsertAttendance({
+      id_sesi,
+      nim,
+      status,
+      waktu_scan: new Date(), // Waktu diupdate ke saat ini
+      similarity: null,
+      latitude: null,
+      longitude: null
+    });
+
+    res.json({
+      success: true,
+      message: 'Status presensi berhasil diperbarui.',
+      data: updated
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getTodaySessions,
   toggleSessionStatus,
   getLiveAttendance,
+  updateAttendanceManual,
   getDashboardStats,
   getLecturerProfile,
 };

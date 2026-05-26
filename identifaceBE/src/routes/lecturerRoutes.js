@@ -4,7 +4,8 @@ const {
     toggleSessionStatus, 
     getLiveAttendance, 
     getDashboardStats,
-    getLecturerProfile
+    getLecturerProfile,
+    updateAttendanceManual
 } = require('../controllers/lecturerController');
 const { authenticate, authorize } = require('../middleware/authMiddleware');
 // Tambahkan di lecturerRoutes.js Backend
@@ -19,6 +20,6 @@ router.get('/dashboard/summary', getDashboardStats);
 router.get('/session/:id_sesi/attendance', getLiveAttendance);
 router.get('/profile', getLecturerProfile);
 // router.patch('/session/:id_sesi/attendance', upload.single('file'), updateAttendanceManual);
-
+router.patch('/session/:id_sesi/attendance', updateAttendanceManual);
 
 module.exports = router;

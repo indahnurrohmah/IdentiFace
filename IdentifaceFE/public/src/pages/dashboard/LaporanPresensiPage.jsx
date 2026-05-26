@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logo from '../../assets/logo.png'
-import { FiRefreshCw } from 'react-icons/fi'
+import { FiRefreshCw, FiSearch, FiX } from 'react-icons/fi'
 
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -38,23 +38,53 @@ export default function LaporanPresensiPage() {
   const [mahasiswaData, setMahasiswaData] = useState([])
   const [mataKuliahData, setMataKuliahData] = useState([])
 
+  // State Pagination (Paginasi Standar)
+  const limitPerPage = 10; // Ditampilkan per 10 data
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // State Filter
+  const [filters, setFilters] = useState({
+    search: '',
+    prodi: '',
+    angkatan: '',
+    tanggal: '',
+    status: ''
+  })
+
   // State Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalAction, setModalAction] = useState('')
   const [selectedRow, setSelectedRow] = useState(null)
-  const [formData, setFormData] = useState({
-    statusBaru: 'hadir',
-    alasan: '',
-  })
+  const [formData, setFormData] = useState({ statusBaru: 'hadir', alasan: '' })
 
   // ─── FETCH DATA ──────────────────────────────────────────────────────────
-  const fetchLaporan = useCallback(async () => {
+  const fetchLaporan = useCallback(async (currentFilters = filters, currentPage = 1) => {
     setLoading(true);
     setError(null);
     try {
       if (activeTab === 'mahasiswa') {
-        const res = await apiFetch('/admin/attendance/report');
-        setMahasiswaData(Array.isArray(res.data?.data) ? res.data.data : []);
+        const query = new URLSearchParams();
+        query.append('limit', limitPerPage);
+        query.append('page', currentPage);
+        
+        if (currentFilters.search) query.append('search', currentFilters.search);
+        if (currentFilters.prodi) query.append('prodi', currentFilters.prodi);
+        if (currentFilters.angkatan) query.append('angkatan', currentFilters.angkatan);
+        if (currentFilters.status) query.append('status', currentFilters.status);
+        if (currentFilters.tanggal) {
+          query.append('from_date', currentFilters.tanggal);
+          query.append('to_date', currentFilters.tanggal);
+        }
+
+        const res = await apiFetch(`/admin/attendance/report?${query.toString()}`);
+        const fetchedData = Array.isArray(res.data?.data) ? res.data.data : [];
+        const totalDataInDB = res.data?.total || 0;
+
+        // Ganti data lama dengan data halaman baru (bukan di-append)
+        setMahasiswaData(fetchedData);
+        setTotalPages(Math.ceil(totalDataInDB / limitPerPage) || 1);
+
       } else {
         const res = await apiFetch('/admin/attendance/summary');
         setMataKuliahData(Array.isArray(res.data) ? res.data : []);
@@ -66,27 +96,52 @@ export default function LaporanPresensiPage() {
     }
   }, [activeTab]);
 
+  // Fetch pertama kali halaman atau tab dimuat
   useEffect(() => {
-    fetchLaporan();
-  }, [fetchLaporan]);
+    setPage(1);
+    fetchLaporan(filters, 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]); 
 
   // ─── HANDLERS ────────────────────────────────────────────────────────────
   const handleLogout = async () => {
-    try {
-      await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" });
-    } catch (e) {}
+    try { await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" }); } catch (e) {}
     localStorage.removeItem("user");
     navigate("/");
+  };
+
+  const handleSearch = () => {
+    setPage(1);
+    fetchLaporan(filters, 1);
+  };
+
+  const handleResetFilter = () => {
+    const emptyFilters = { search: '', prodi: '', angkatan: '', tanggal: '', status: '' };
+    setFilters(emptyFilters);
+    setPage(1);
+    fetchLaporan(emptyFilters, 1); 
+  };
+
+  const handleNextPage = () => {
+    if (page < totalPages) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchLaporan(filters, nextPage);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      const prevPage = page - 1;
+      setPage(prevPage);
+      fetchLaporan(filters, prevPage);
+    }
   };
 
   const openModal = (action, row) => {
     setModalAction(action)
     setSelectedRow(row)
-    
-    setFormData({
-      statusBaru: row.status ? row.status.toLowerCase() : 'hadir',
-      alasan: '', // Kosongkan saat dibuka
-    })
+    setFormData({ statusBaru: row.status ? row.status.toLowerCase() : 'hadir', alasan: '' })
     setIsModalOpen(true)
   }
 
@@ -96,26 +151,21 @@ export default function LaporanPresensiPage() {
     setSelectedRow(null)
   }
 
-// ─── UPDATE PRESENSI ─────────────────────────
   const handleSaveModal = async () => {
     if (!selectedRow) return;
-
     setIsSaving(true);
     try {
       const payload = {
-        id_presensi: selectedRow.id_presensi, // Bisa berisi null jika belum pernah absen
-        id_sesi: selectedRow.id_sesi,         // Diperlukan jika harus membuat data baru
-        nim: selectedRow.nim,                 // Diperlukan jika harus membuat data baru
+        id_presensi: selectedRow.id_presensi, 
+        id_sesi: selectedRow.id_sesi,         
+        nim: selectedRow.nim,                 
         status: formData.statusBaru,
         alasan: formData.alasan 
       };
 
-      // URL diubah menyesuaikan route baru di backend
       const res = await fetch(`${API_BASE}/admin/attendance/update-status`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(payload),
       });
@@ -126,8 +176,15 @@ export default function LaporanPresensiPage() {
       setToast("Status presensi berhasil diperbarui!");
       setTimeout(() => setToast(null), 3000);
       
+      // Update UI secara lokal
+      setMahasiswaData(prev => prev.map(item => 
+        ((item.id_presensi && item.id_presensi === selectedRow.id_presensi) || 
+        (item.nim === selectedRow.nim && item.id_sesi === selectedRow.id_sesi))
+          ? { ...item, status: formData.statusBaru, id_presensi: json.data?.id_presensi || item.id_presensi } 
+          : item
+      ));
+
       closeModal();
-      fetchLaporan(); // Refresh data tabel
     } catch (err) {
       alert("Terjadi kesalahan: " + err.message);
     } finally {
@@ -149,7 +206,7 @@ export default function LaporanPresensiPage() {
     <div className="min-h-screen flex flex-col bg-[#ECE7DF] relative">
       {/* Toast Notification */}
       {toast && (
-        <div className="absolute top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50">
+        <div className="absolute top-5 left-1/2 transform -translate-x-1/2 bg-[#123B5D] text-white px-6 py-3 rounded-lg shadow-lg z-50">
           {toast}
         </div>
       )}
@@ -173,17 +230,11 @@ export default function LaporanPresensiPage() {
             <button className="w-full h-10 rounded bg-[#123B5D] text-white font-semibold shadow-inner">
               Laporan Presensi
             </button>
-            <button
-              onClick={() => navigate('/admin/data-wajah')}
-              className="w-full h-10 rounded border border-white text-black bg-white font-semibold hover:bg-gray-100 transition-colors"
-            >
+            <button onClick={() => navigate('/admin/data-wajah')} className="w-full h-10 rounded border border-white text-black bg-white font-semibold hover:bg-gray-100 transition-colors">
               Data Wajah
             </button>
           </nav>
-          <button
-            onClick={handleLogout}
-            className="mt-auto w-full h-10 rounded bg-[#B82410] text-white font-semibold hover:bg-[#9a1d0d] transition-colors"
-          >
+          <button onClick={handleLogout} className="mt-auto w-full h-10 rounded bg-[#B82410] text-white font-semibold hover:bg-[#9a1d0d] transition-colors">
             Keluar
           </button>
         </aside>
@@ -192,20 +243,8 @@ export default function LaporanPresensiPage() {
           <div className="flex items-start justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold">Laporan Presensi</h1>
-              <p className="text-sm text-gray-600">
-                Kelola dan monitor kehadiran mahasiswa & sesi perkuliahan
-              </p>
+              <p className="text-sm text-gray-600">Kelola dan monitor kehadiran mahasiswa & sesi perkuliahan</p>
             </div>
-            
-            <button
-              onClick={fetchLaporan}
-              disabled={loading}
-              className={`flex items-center gap-2 px-5 py-2 rounded-lg font-semibold text-sm text-white transition-all
-                ${loading ? "bg-[#123B5D]/60 cursor-not-allowed" : "bg-[#123B5D] hover:bg-[#0d2a3f]"}`}
-            >
-              <FiRefreshCw size={16} className={loading ? "animate-spin" : ""} />
-              Refresh
-            </button>
           </div>
 
           {/* TABS */}
@@ -213,17 +252,13 @@ export default function LaporanPresensiPage() {
             <div className="w-[420px] border border-[#123B5D] rounded-full overflow-hidden flex bg-[#EFE6D3]">
               <button
                 onClick={() => setActiveTab('mahasiswa')}
-                className={`w-1/2 py-1.5 text-sm font-bold transition-colors ${
-                  activeTab === 'mahasiswa' ? 'bg-[#6BAAAF] text-white' : 'text-[#123B5D] hover:bg-[#6BAAAF]/20'
-                }`}
+                className={`w-1/2 py-1.5 text-sm font-bold transition-colors ${activeTab === 'mahasiswa' ? 'bg-[#6BAAAF] text-white' : 'text-[#123B5D] hover:bg-[#6BAAAF]/20'}`}
               >
                 Data Mahasiswa
               </button>
               <button
                 onClick={() => setActiveTab('matakuliah')}
-                className={`w-1/2 py-1.5 text-sm font-bold transition-colors ${
-                  activeTab === 'matakuliah' ? 'bg-[#6BAAAF] text-white' : 'text-[#123B5D] hover:bg-[#6BAAAF]/20'
-                }`}
+                className={`w-1/2 py-1.5 text-sm font-bold transition-colors ${activeTab === 'matakuliah' ? 'bg-[#6BAAAF] text-white' : 'text-[#123B5D] hover:bg-[#6BAAAF]/20'}`}
               >
                 Data Mata Kuliah
               </button>
@@ -231,82 +266,153 @@ export default function LaporanPresensiPage() {
           </div>
 
           {/* FILTER BARS */}
-          <div className="bg-[#EFE6D3] border border-[#123B5D] rounded-lg shadow-sm p-3 mb-5">
-            {activeTab === 'mahasiswa' ? (
-              <div className="grid grid-cols-5 gap-4">
-                <input placeholder="Cari nama atau NIM..." className="h-9 rounded px-3 text-sm border border-[#6BAAAF] focus:outline-none" />
-                <select className="h-9 rounded px-3 text-sm border border-[#6BAAAF] bg-white focus:outline-none"><option>Semua Prodi</option></select>
-                <select className="h-9 rounded px-3 text-sm border border-[#6BAAAF] bg-white focus:outline-none"><option>Semua Angkatan</option></select>
-                <select className="h-9 rounded px-3 text-sm border border-[#6BAAAF] bg-white focus:outline-none"><option>Tanggal / Sesi</option></select>
-                <select className="h-9 rounded px-3 text-sm border border-[#6BAAAF] bg-white focus:outline-none"><option>Status</option></select>
+          {activeTab === 'mahasiswa' && (
+            <div className="bg-[#EFE6D3] border border-[#123B5D] rounded-lg shadow-sm p-4 mb-5">
+              <div className="grid grid-cols-6 gap-3">
+                <input 
+                  type="text"
+                  value={filters.search}
+                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                  placeholder="Cari nama atau NIM..." 
+                  className="h-10 rounded-md px-3 text-sm border border-gray-300 focus:outline-none focus:border-[#6BAAAF] col-span-2" 
+                />
+                
+                <select 
+                  value={filters.prodi}
+                  onChange={(e) => setFilters({ ...filters, prodi: e.target.value })}
+                  className="h-10 rounded-md px-3 text-sm border border-gray-300 bg-white focus:outline-none focus:border-[#6BAAAF]"
+                >
+                  <option value="">Semua Prodi</option>
+                  <option value="Teknik Informatika">Teknik Informatika</option>
+                  <option value="Sistem Informasi">Sistem Informasi</option>
+                </select>
+
+                <select 
+                  value={filters.status}
+                  onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                  className="h-10 rounded-md px-3 text-sm border border-gray-300 bg-white focus:outline-none focus:border-[#6BAAAF]"
+                >
+                  <option value="">Semua Status</option>
+                  <option value="hadir">Hadir</option>
+                  <option value="terlambat">Terlambat</option>
+                  <option value="izin">Izin</option>
+                  <option value="sakit">Sakit</option>
+                  <option value="alpha">Alpha</option>
+                </select>
+
+                <input 
+                  type="date"
+                  value={filters.tanggal}
+                  onChange={(e) => setFilters({ ...filters, tanggal: e.target.value })}
+                  className="h-10 rounded-md px-3 text-sm border border-gray-300 bg-white focus:outline-none focus:border-[#6BAAAF]"
+                />
+
+                <div className="flex gap-2">
+                  <button 
+                    onClick={handleSearch}
+                    className="flex-1 bg-[#123B5D] hover:bg-[#0d2a3f] text-white rounded-md text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+                  >
+                    <FiSearch /> Cari
+                  </button>
+                  <button 
+                    onClick={handleResetFilter}
+                    title="Reset Filter"
+                    className="w-10 bg-red-100 hover:bg-red-200 text-red-600 border border-red-200 rounded-md flex items-center justify-center transition-colors"
+                  >
+                    <FiX />
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-4 gap-4">
-                <input placeholder="Cari kode mata kuliah..." className="h-9 rounded px-3 text-sm border border-[#6BAAAF] focus:outline-none" />
-                <select className="h-9 rounded px-3 text-sm border border-[#6BAAAF] bg-white focus:outline-none"><option>Semua Prodi</option></select>
-                <select className="h-9 rounded px-3 text-sm border border-[#6BAAAF] bg-white focus:outline-none"><option>Semua Dosen</option></select>
-                <select className="h-9 rounded px-3 text-sm border border-[#6BAAAF] bg-white focus:outline-none"><option>Kelas</option></select>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* TABLE DATA */}
-          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-xl shadow-md overflow-hidden flex-1">
-            <div className="bg-[#123B5D] text-white px-5 py-3 font-semibold">
-              {activeTab === 'mahasiswa' ? 'Timeline Kehadiran Mahasiswa' : 'Rekapitulasi Mata Kuliah'}
+          <div className="bg-[#EFE6D3] border border-[#6BAAAF] rounded-xl shadow-md overflow-hidden flex-1 flex flex-col">
+            <div className="bg-[#123B5D] text-white px-5 py-3 font-semibold flex justify-between items-center">
+              <span>{activeTab === 'mahasiswa' ? 'Timeline Kehadiran Mahasiswa' : 'Rekapitulasi Mata Kuliah'}</span>
+              {activeTab === 'mahasiswa' && (
+                <span className="text-xs font-normal opacity-80">
+                  {mahasiswaData.length} data di Halaman {page}
+                </span>
+              )}
             </div>
             
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto flex-1 relative">
               {error && <div className="p-5 text-red-500 font-medium text-center">Gagal memuat data: {error}</div>}
               
               {activeTab === 'mahasiswa' ? (
-                <table className="w-full bg-white min-w-[800px]">
-                  <thead>
-                    <tr className="bg-gray-50 border-b-2 border-[#6BAAAF]">
-                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Nama</th>
-                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">NIM</th>
-                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Prodi</th>
-                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Mata Kuliah</th>
-                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Tanggal</th>
-                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Status</th>
-                      <th className="text-left px-4 py-3 text-sm font-bold text-gray-600 text-center">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loading ? (
-                      <tr><td colSpan="7" className="text-center py-8 text-gray-400 font-medium">Memuat data timeline...</td></tr>
-                    ) : mahasiswaData.length === 0 ? (
-                      <tr><td colSpan="7" className="text-center py-8 text-gray-400">Tidak ada riwayat presensi.</td></tr>
-                    ) : (
-                      mahasiswaData.map((row, index) => (
-                        <tr key={row.id_presensi || index} className={`border-b transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-[#f0f9fa]`}>
-                          <td className="px-4 py-3 text-sm font-bold text-gray-800">{row.nama_lengkap || row.nama}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{row.nim}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{row.prodi || '-'}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600 font-medium">{row.nama_mk}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">
-                            {row.tanggal || row.waktu_scan ? new Date(row.tanggal || row.waktu_scan).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric'}) : '-'}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className={`${statusClass[row.status?.toLowerCase()] || 'bg-gray-200 text-gray-800'} px-3 py-1 rounded-full text-xs font-bold capitalize`}>
-                              {row.status || 'Alfa'}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex gap-2 justify-center">
-                              <button onClick={() => openModal('lihat', row)} className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
-                                Detail
-                              </button>
-                              <button onClick={() => openModal('ubah', row)} className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
-                                Ubah Status
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                <>
+                  <table className="w-full bg-white min-w-[800px]">
+                    <thead>
+                      <tr className="bg-gray-50 border-b-2 border-[#6BAAAF]">
+                        <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Nama</th>
+                        <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">NIM</th>
+                        <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Prodi</th>
+                        <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Mata Kuliah</th>
+                        <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Tanggal</th>
+                        <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Status</th>
+                        <th className="text-left px-4 py-3 text-sm font-bold text-gray-600 text-center">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loading ? (
+                        <tr><td colSpan="7" className="text-center py-10 text-gray-400 font-medium">Memuat data timeline...</td></tr>
+                      ) : mahasiswaData.length === 0 ? (
+                        <tr><td colSpan="7" className="text-center py-10 text-gray-400">Tidak ada riwayat presensi yang cocok dengan filter.</td></tr>
+                      ) : (
+                        mahasiswaData.map((row, index) => (
+                          <tr key={`${row.nim}-${row.id_sesi}-${index}`} className={`border-b transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-[#f0f9fa]`}>
+                            <td className="px-4 py-3 text-sm font-bold text-gray-800">{row.nama_lengkap || row.nama}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{row.nim}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{row.prodi || '-'}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600 font-medium">{row.nama_mk}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600">
+                              {row.tanggal || row.waktu_scan ? new Date(row.tanggal || row.waktu_scan).toLocaleDateString('id-ID', { day:'numeric', month:'short', year:'numeric'}) : '-'}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`${statusClass[row.status?.toLowerCase()] || 'bg-gray-200 text-gray-800'} px-3 py-1 rounded-full text-xs font-bold capitalize`}>
+                                {row.status || 'Alpha'}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex gap-2 justify-center">
+                                <button onClick={() => openModal('lihat', row)} className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
+                                  Detail
+                                </button>
+                                <button onClick={() => openModal('ubah', row)} className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors">
+                                  Ubah
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+
+                  {/* Navigasi Halaman Sebelumnya & Selanjutnya */}
+                  {!loading && totalPages > 1 && (
+                    <div className="py-4 bg-white border-t border-gray-200 flex justify-between items-center px-6">
+                      <button 
+                        onClick={handlePrevPage} 
+                        disabled={page === 1}
+                        className="px-5 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm font-bold rounded-lg transition-all disabled:opacity-40"
+                      >
+                        Sebelumnya
+                      </button>
+                      <span className="text-sm font-semibold text-gray-600">
+                        Halaman {page} dari {totalPages}
+                      </span>
+                      <button 
+                        onClick={handleNextPage} 
+                        disabled={page === totalPages}
+                        className="px-5 py-2 bg-[#6BAAAF] hover:bg-[#5a9499] text-white text-sm font-bold rounded-lg transition-all disabled:opacity-40"
+                      >
+                        Selanjutnya
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <table className="w-full bg-white min-w-[800px]">
                   <thead>
@@ -322,9 +428,9 @@ export default function LaporanPresensiPage() {
                   </thead>
                   <tbody>
                     {loading ? (
-                       <tr><td colSpan="7" className="text-center py-8 text-gray-400 font-medium">Memuat rekapitulasi...</td></tr>
+                       <tr><td colSpan="7" className="text-center py-10 text-gray-400 font-medium">Memuat rekapitulasi...</td></tr>
                     ) : mataKuliahData.length === 0 ? (
-                       <tr><td colSpan="7" className="text-center py-8 text-gray-400">Tidak ada rekapitulasi mata kuliah.</td></tr>
+                       <tr><td colSpan="7" className="text-center py-10 text-gray-400">Tidak ada rekapitulasi mata kuliah.</td></tr>
                     ) : (
                       mataKuliahData.map((row, index) => (
                         <tr key={index} className={`border-b align-top transition-colors duration-150 ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'} hover:bg-[#f0f9fa]`}>

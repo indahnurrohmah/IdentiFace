@@ -29,12 +29,11 @@ async function apiFetch(path, options = {}) {
 export default function MonitorPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const id_sesi = searchParams.get("sesi"); // Menangkap ?sesi=... dari URL
+  const id_sesi = searchParams.get("sesi");
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // ── State ──────────────────────────────────────────────────────────────
-  const [profile, setProfile] = useState(null); // State Profil
+  const [profile, setProfile] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -42,19 +41,17 @@ export default function MonitorPage() {
 
   const [modalTambah, setModalTambah] = useState(null);
   const [formTambah, setFormTambah] = useState({
-    status: "hadir", // Default disesuaikan dengan DB (lowercase)
+    status: "hadir",
     alasan: "",
-    bukti: null,
   });
 
   const [selectedStudents, setSelectedStudents] = useState({});
   const [toast, setToast] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   const selectAll = students.length > 0 && students.every((s) => selectedStudents[s.nim]);
 
   // ── Fetch Data ─────────────────────────────────────────────────────────
-  
-  // Fungsi Fetch Profil
   const fetchProfile = useCallback(async () => {
     try {
       const data = await apiFetch("/lecturer/profile");
@@ -64,7 +61,6 @@ export default function MonitorPage() {
     }
   }, []);
 
-  // Fungsi Fetch Presensi
   const fetchAttendance = useCallback(async (isRefresh = false) => {
     if (!id_sesi) {
       setLoading(false);
@@ -78,7 +74,6 @@ export default function MonitorPage() {
     try {
       const data = await apiFetch(`/lecturer/session/${id_sesi}/attendance`);
       setStudents(data || []);
-      // Reset seleksi jika data diperbarui
       setSelectedStudents({});
     } catch (err) {
       setError(err.message);
@@ -110,36 +105,36 @@ export default function MonitorPage() {
 
   const handleTambahHadir = (student) => {
     setModalTambah(student);
-    setFormTambah({ status: "hadir", alasan: "", bukti: null });
+    setFormTambah({ 
+      status: student.status ? student.status.toLowerCase() : "hadir", 
+      alasan: "" 
+    });
   };
 
-  // Submit Update Status Manual
+  // Submit Update Status Manual Dosen (JSON Tanpa File Bukti)
   const handleSaveTambah = async () => {
-    // Ambil semua NIM yang diceklis, atau gunakan NIM dari baris yang diklik
     const selectedNims = Object.entries(selectedStudents)
       .filter(([, checked]) => checked)
       .map(([nim]) => nim);
 
     const targetNims = selectedNims.length > 0 ? selectedNims : [modalTambah.nim];
 
+    setIsSaving(true);
     try {
-      // Loop untuk update setiap mahasiswa (Karena multipart/form-data harus dikirim satu per satu atau API mendukung batch)
+      // Loop update menggunakan JSON payload
       await Promise.all(
         targetNims.map(async (nim) => {
-          const formData = new FormData();
-          formData.append("status", formTambah.status);
-          formData.append("alasan", formTambah.alasan);
-          formData.append("nim", nim);
-          if (formTambah.bukti) {
-            formData.append("file", formTambah.bukti);
-          }
-
-          // Catatan: Pastikan endpoint PATCH ini tersedia di lecturerRoutes.js Backend
           await fetch(`${API_BASE}/lecturer/session/${id_sesi}/attendance`, {
             method: "PATCH",
+            headers: {
+              "Content-Type": "application/json"
+            },
             credentials: "include",
-            body: formData,
-            // Fetch dengan FormData TIDAK perlu set Content-Type secara manual, browser yang akan mengaturnya
+            body: JSON.stringify({
+              nim: nim,
+              status: formTambah.status,
+              alasan: formTambah.alasan
+            }),
           });
         })
       );
@@ -156,11 +151,17 @@ export default function MonitorPage() {
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
       alert("Terjadi kesalahan saat memperbarui data.");
+    } finally {
+      setIsSaving(false);
     }
   };
 
   // ── Stats Calculation ──────────────────────────────────────────────────
   const countStatus = (statusGroup) => {
+    if (statusGroup.includes("alpha")) {
+       // Menghitung mahasiswa yang statusnya null/kosong sebagai Alpha
+       return students.filter((s) => !s.status || statusGroup.includes(s.status?.toLowerCase())).length;
+    }
     return students.filter((s) => statusGroup.includes(s.status?.toLowerCase())).length;
   };
 
@@ -204,12 +205,10 @@ export default function MonitorPage() {
   const displayName = profile?.nama || user?.nama || "Dosen";
   const displayFirstName = displayName.split(" ")[0];
 
-  // ── Render ─────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col bg-[#ECE7DF] relative">
-      {/* Toast Notification */}
       {toast && (
-        <div className="absolute top-5 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all">
+        <div className="absolute top-5 left-1/2 transform -translate-x-1/2 bg-[#123B5D] text-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all">
           {toast}
         </div>
       )}
@@ -335,7 +334,7 @@ export default function MonitorPage() {
                         </tr>
                       ) : students.length === 0 ? (
                         <tr>
-                          <td colSpan="6" className="text-center py-10 text-gray-400">Belum ada data presensi.</td>
+                          <td colSpan="6" className="text-center py-10 text-gray-400">Tidak ada mahasiswa terdaftar di kelas ini.</td>
                         </tr>
                       ) : (
                         students.map((student, index) => (
@@ -401,7 +400,8 @@ export default function MonitorPage() {
               <select
                 value={formTambah.status}
                 onChange={(e) => setFormTambah((prev) => ({ ...prev, status: e.target.value }))}
-                className="w-full h-11 border border-gray-300 rounded-lg px-4 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#123B5D]/30"
+                disabled={isSaving}
+                className="w-full h-11 border border-gray-300 rounded-lg px-4 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-[#123B5D]/30 disabled:bg-gray-100"
               >
                 <option value="hadir">Hadir</option>
                 <option value="terlambat">Terlambat</option>
@@ -411,46 +411,32 @@ export default function MonitorPage() {
               </select>
             </div>
 
-            <div className="mb-4">
+            <div className="mb-6">
               <label className="block text-sm font-bold text-gray-700 mb-1.5">Alasan / Keterangan</label>
               <textarea
                 value={formTambah.alasan}
                 onChange={(e) => setFormTambah((prev) => ({ ...prev, alasan: e.target.value }))}
-                placeholder="Tuliskan alasan perubahan kehadiran..."
+                disabled={isSaving}
+                placeholder="Tuliskan alasan perubahan kehadiran (opsional)..."
                 rows={3}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#123B5D]/30"
+                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#123B5D]/30 disabled:bg-gray-100"
               />
-            </div>
-
-            <div className="mb-6">
-              <label className="block text-sm font-bold text-gray-700 mb-1.5">Bukti Konfirmasi</label>
-              <div className="flex items-center gap-3">
-                <label className="bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-semibold px-4 py-2 rounded-lg cursor-pointer transition-colors">
-                  Pilih File
-                  <input
-                    type="file"
-                    className="hidden"
-                    onChange={(e) => setFormTambah((prev) => ({ ...prev, bukti: e.target.files[0] }))}
-                  />
-                </label>
-                <span className="text-sm text-gray-500 truncate max-w-[200px]">
-                  {formTambah.bukti ? formTambah.bukti.name : "Belum ada file"}
-                </span>
-              </div>
             </div>
 
             <div className="flex justify-end gap-3">
               <button
+                disabled={isSaving}
                 onClick={() => setModalTambah(null)}
-                className="px-5 py-2.5 rounded-lg border border-gray-300 text-sm font-semibold hover:bg-gray-100 transition-colors"
+                className="px-5 py-2.5 rounded-lg border border-gray-400 text-sm font-semibold hover:bg-gray-50 transition-colors disabled:opacity-50"
               >
                 Batal
               </button>
               <button
+                disabled={isSaving}
                 onClick={handleSaveTambah}
-                className="px-5 py-2.5 rounded-lg bg-[#123B5D] hover:bg-[#0d2a3f] text-white text-sm font-semibold transition-colors"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#123B5D] hover:bg-[#0d2a3f] text-white text-sm font-semibold transition-colors disabled:opacity-50"
               >
-                Simpan
+                {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
               </button>
             </div>
           </div>
@@ -462,7 +448,7 @@ export default function MonitorPage() {
         <div className="flex justify-center items-center gap-2 mb-2">
           <img src={logo} alt="IdentiFace Logo" className="w-40 h-auto object-contain" />
         </div>
-        <p className="font-semibold">Privacy Policy | Terms of Service</p>
+        <p className="font-semibold text-[#123B5D]">Privacy Policy | Terms of Service</p>
       </footer>
     </div>
   );

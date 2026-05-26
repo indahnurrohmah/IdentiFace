@@ -435,12 +435,12 @@ function LiveAttendanceCard({ sesi }) {
                 className={`px-4 py-1 rounded text-xs font-semibold ${
                   a.status === "hadir"
                     ? "bg-green-300 text-green-800"
-                    : a.status === "izin"
+                    : (a.status === "izin" || a.status === "sakit")
                     ? "bg-yellow-200 text-yellow-800"
                     : "bg-red-300 text-red-800"
                 }`}
               >
-                {a.status.charAt(0).toUpperCase() + a.status.slice(1)}
+                {a.status ? a.status.charAt(0).toUpperCase() + a.status.slice(1) : "Alpha"}
               </span>
             </div>
           </div>

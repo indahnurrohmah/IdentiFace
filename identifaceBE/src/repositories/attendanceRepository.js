@@ -158,21 +158,35 @@ const getSummaryByNim = async (nim) => {
 /**
  * Get attendance report for admin with filters
  */
-const getAdminReport = async ({ prodi, angkatan, id_mk, from_date, to_date, limit = 100, offset = 0 } = {}) => {
+/**
+ * Get attendance report for admin with filters (Mendukung Pencarian Nama & Status)
+ */
+/**
+ * Get attendance report for admin with filters
+ */
+const getAdminReport = async ({ search, prodi, angkatan, id_mk, status, from_date, to_date, limit = 50, offset = 0 } = {}) => {
     const conditions = [];
     const values = [];
     let idx = 1;
 
+    // Menambahkan filter pencarian
+    if (search) {
+        conditions.push(`(m.nim ILIKE $${idx} OR m.nama_lengkap ILIKE $${idx})`);
+        values.push(`%${search}%`);
+        idx++;
+    }
     if (prodi) { conditions.push(`m.prodi = $${idx}`); values.push(prodi); idx++; }
     if (angkatan) { conditions.push(`m.angkatan = $${idx}`); values.push(parseInt(angkatan, 10)); idx++; }
     if (id_mk) { conditions.push(`mk.id_mk = $${idx}`); values.push(parseInt(id_mk, 10)); idx++; }
+    if (status) { conditions.push(`p.status = $${idx}`); values.push(status); idx++; }
     if (from_date) { conditions.push(`s.tanggal >= $${idx}`); values.push(from_date); idx++; }
     if (to_date) { conditions.push(`s.tanggal <= $${idx}`); values.push(to_date); idx++; }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
+    // 🌟 PERBAIKAN: Ubah COUNT(DISTINCT m.nim) menjadi COUNT(*)
     const countResult = await pool.query(
-        `SELECT COUNT(DISTINCT m.nim)
+        `SELECT COUNT(*)
          FROM mahasiswa m
          JOIN kelas_mahasiswa km ON km.nim = m.nim
          JOIN kelas k ON k.id_kelas = km.id_kelas
@@ -186,9 +200,9 @@ const getAdminReport = async ({ prodi, angkatan, id_mk, from_date, to_date, limi
     values.push(limit, offset);
     const result = await pool.query(
         `SELECT
-           p.id_presensi,       -- 👈 WAJIB DITAMBAHKAN UNTUK FITUR UPDATE
+           p.id_presensi,       
            s.id_sesi,
-           p.bukti_url,         -- 👈 WAJIB DITAMBAHKAN UNTUK MELIHAT BUKTI FILE
+           p.bukti_url,         
            m.nim,
            m.nama_lengkap AS nama,
            m.prodi,
@@ -256,13 +270,23 @@ const getAdminSummary = async ({ id_mk } = {}) => {
 /**
  * Get live attendance list for a specific session
  */
+/**
+ * Get live attendance list for a specific session (Menampilkan semua mahasiswa terdaftar)
+ */
 const getLiveAttendanceBySesi = async (id_sesi) => {
     const query = `
-        SELECT m.nim, m.nama_lengkap AS nama, p.status, p.waktu_scan, p.similarity
-        FROM presensi p
-        JOIN mahasiswa m ON p.nim = m.nim
-        WHERE p.id_sesi = $1
-        ORDER BY p.waktu_scan DESC
+        SELECT 
+            m.nim, 
+            m.nama_lengkap AS nama, 
+            p.status, 
+            p.waktu_scan, 
+            p.similarity
+        FROM sesi_kelas sk
+        JOIN kelas_mahasiswa km ON sk.id_kelas = km.id_kelas
+        JOIN mahasiswa m ON km.nim = m.nim
+        LEFT JOIN presensi p ON p.id_sesi = sk.id_sesi AND p.nim = m.nim
+        WHERE sk.id_sesi = $1
+        ORDER BY m.nama_lengkap ASC
     `;
     const result = await pool.query(query, [id_sesi]);
     return result.rows;
