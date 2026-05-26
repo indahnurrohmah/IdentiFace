@@ -11,7 +11,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: "include", // WAJIB untuk mengirim Cookie
+    credentials: "include", 
   });
 
   if (res.status === 401) {
@@ -111,7 +111,6 @@ export default function MonitorPage() {
     });
   };
 
-  // Submit Update Status Manual Dosen (JSON Tanpa File Bukti)
   const handleSaveTambah = async () => {
     const selectedNims = Object.entries(selectedStudents)
       .filter(([, checked]) => checked)
@@ -121,7 +120,6 @@ export default function MonitorPage() {
 
     setIsSaving(true);
     try {
-      // Loop update menggunakan JSON payload
       await Promise.all(
         targetNims.map(async (nim) => {
           await fetch(`${API_BASE}/lecturer/session/${id_sesi}/attendance`, {
@@ -146,7 +144,7 @@ export default function MonitorPage() {
       );
       
       setModalTambah(null);
-      fetchAttendance(); // Reload data dari server
+      fetchAttendance();
       
       setTimeout(() => setToast(null), 3000);
     } catch (err) {
@@ -159,7 +157,6 @@ export default function MonitorPage() {
   // ── Stats Calculation ──────────────────────────────────────────────────
   const countStatus = (statusGroup) => {
     if (statusGroup.includes("alpha")) {
-       // Menghitung mahasiswa yang statusnya null/kosong sebagai Alpha
        return students.filter((s) => !s.status || statusGroup.includes(s.status?.toLowerCase())).length;
     }
     return students.filter((s) => statusGroup.includes(s.status?.toLowerCase())).length;
@@ -201,7 +198,6 @@ export default function MonitorPage() {
     sakit: "bg-blue-100 text-blue-700 border border-blue-300",
   };
 
-  // ── Data Nama Dinamis ──────────────────────────────────────────────────
   const displayName = profile?.nama || user?.nama || "Dosen";
   const displayFirstName = displayName.split(" ")[0];
 
@@ -257,11 +253,23 @@ export default function MonitorPage() {
         <section className="flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold">Monitoring Kehadiran</h1>
-              <p className="text-sm text-gray-600">
+              <h1 className="text-3xl font-bold mb-1">Monitoring Kehadiran</h1>
+              
+              {/* MENAMPILKAN NAMA MATA KULIAH */}
+              {students.length > 0 && (
+                <h2 className="text-lg font-bold text-[#123B5D]">
+                  {students[0].nama_mk}{" "}
+                  <span className="text-gray-500 font-medium text-sm">
+                    ({students[0].kode_mk} - Kelas {students[0].nama_kelas || "-"})
+                  </span>
+                </h2>
+              )}
+
+              <p className="text-sm text-gray-500 mt-0.5">
                 {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
               </p>
             </div>
+            
             <button
               onClick={() => fetchAttendance(true)}
               disabled={refreshing || !id_sesi}

@@ -273,6 +273,9 @@ const getAdminSummary = async ({ id_mk } = {}) => {
 /**
  * Get live attendance list for a specific session (Menampilkan semua mahasiswa terdaftar)
  */
+/**
+ * Get live attendance list for a specific session (Menampilkan semua mahasiswa terdaftar + Nama MK)
+ */
 const getLiveAttendanceBySesi = async (id_sesi) => {
     const query = `
         SELECT 
@@ -280,9 +283,14 @@ const getLiveAttendanceBySesi = async (id_sesi) => {
             m.nama_lengkap AS nama, 
             p.status, 
             p.waktu_scan, 
-            p.similarity
+            p.similarity,
+            mk.nama_mk,
+            mk.kode_mk,
+            k.nama_kelas
         FROM sesi_kelas sk
         JOIN kelas_mahasiswa km ON sk.id_kelas = km.id_kelas
+        JOIN kelas k ON sk.id_kelas = k.id_kelas
+        JOIN mata_kuliah mk ON k.id_mk = mk.id_mk
         JOIN mahasiswa m ON km.nim = m.nim
         LEFT JOIN presensi p ON p.id_sesi = sk.id_sesi AND p.nim = m.nim
         WHERE sk.id_sesi = $1
