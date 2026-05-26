@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "../../assets/logo.png";
-import { FiRefreshCw } from "react-icons/fi";
+import { FiRefreshCw, FiMapPin, FiWifi, FiCheckCircle } from "react-icons/fi";
 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
@@ -420,7 +420,7 @@ export default function SchedulePage() {
                             : "border-gray-300 bg-white text-gray-600 hover:border-[#123B5D]"
                         }`}
               >
-                📍 Offline
+                <span className="flex items-center justify-center gap-1.5"><FiMapPin size={14} /> Offline</span>
                 <p className="text-xs font-normal mt-1 opacity-70">
                   Cek lokasi mahasiswa
                 </p>
@@ -437,7 +437,7 @@ export default function SchedulePage() {
                             : "border-gray-300 bg-white text-gray-600 hover:border-[#123B5D]"
                         }`}
               >
-                🌐 Online
+                <span className="flex items-center justify-center gap-1.5"><FiWifi size={14} /> Online</span>
                 <p className="text-xs font-normal mt-1 opacity-70">
                   Lokasi tidak dicek
                 </p>
@@ -447,8 +447,8 @@ export default function SchedulePage() {
             {tipeSesi === "offline" && (
               <div className="mb-5 p-3 bg-white rounded-xl border border-gray-200">
                 {dosenCoords ? (
-                  <p className="text-sm text-green-700 font-semibold text-center">
-                    ✅ Lokasi berhasil didapatkan
+                  <p className="text-sm text-green-700 font-semibold text-center flex items-center justify-center gap-1.5">
+                    <FiCheckCircle size={15} /> Lokasi berhasil didapatkan
                     <span className="block text-xs text-gray-400 font-normal mt-0.5">
                       {dosenCoords.latitude.toFixed(5)},{" "}
                       {dosenCoords.longitude.toFixed(5)}
@@ -462,7 +462,7 @@ export default function SchedulePage() {
                   >
                     {gettingLocation
                       ? "Mengambil lokasi..."
-                      : "📍 Ambil Lokasi Saya"}
+                      : <span className="flex items-center justify-center gap-1.5"><FiMapPin size={13} /> Ambil Lokasi Saya</span>}
                   </button>
                 )}
               </div>
