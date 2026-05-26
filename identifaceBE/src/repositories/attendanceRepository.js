@@ -133,28 +133,38 @@ const getHistoryByNim = async (nim, { id_mk, from_date, to_date, limit = 50, off
 /**
  * Get attendance summary stats for a mahasiswa
  */
+/**
+ * Get attendance summary stats for a mahasiswa
+ */
 const getSummaryByNim = async (nim) => {
     const result = await pool.query(
         `SELECT
            mk.nama_mk,
            mk.kode_mk,
-           COUNT(p.id_presensi) FILTER (WHERE p.status = 'hadir') AS hadir,
-           COUNT(p.id_presensi) FILTER (WHERE p.status = 'izin')  AS izin,
-           COUNT(p.id_presensi) FILTER (WHERE p.status = 'alpha') AS alpha,
-           COUNT(s.id_sesi) AS total_sesi
+           mk.sks,
+           COALESCE(k.nama_kelas, '-') AS kelas,
+           d.nama AS nama_dosen,
+           COUNT(DISTINCT s.id_sesi) AS pertemuan_terlaksana,
+           ROUND(
+             COALESCE(
+               (COUNT(DISTINCT p.id_presensi) FILTER (WHERE p.status IN ('hadir', 'terlambat', 'izin', 'sakit')) * 100.0) 
+               / NULLIF(COUNT(DISTINCT s.id_sesi), 0), 
+               0
+             ), 0
+           ) AS persentase
          FROM kelas_mahasiswa km
          JOIN kelas k ON k.id_kelas = km.id_kelas
          JOIN mata_kuliah mk ON mk.id_mk = k.id_mk
-         JOIN sesi_kelas s ON s.id_kelas = k.id_kelas
+         JOIN dosen d ON k.id_dosen = d.id_dosen
+         LEFT JOIN sesi_kelas s ON s.id_kelas = k.id_kelas
          LEFT JOIN presensi p ON p.id_sesi = s.id_sesi AND p.nim = km.nim
          WHERE km.nim = $1
-         GROUP BY mk.id_mk, mk.nama_mk, mk.kode_mk
+         GROUP BY mk.id_mk, mk.nama_mk, mk.kode_mk, mk.sks, k.nama_kelas, d.nama
          ORDER BY mk.nama_mk`,
         [nim]
     );
     return result.rows;
 };
-
 /**
  * Get attendance report for admin with filters
  */
