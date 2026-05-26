@@ -23,7 +23,9 @@ const app = express();
 
 // --- 4. GLOBAL MIDDLEWARE ---
 app.use(cors({
-    origin: 'http://localhost:5173', // WAJIB sama persis dengan URL Frontend-mu (tanpa garis miring di akhir)
+    // origin: process.env.FRONTEND_URL || 'http://localhost:5173', 
+    
+    origin: 'http://localhost:5173', 
     credentials: true                // WAJIB true agar mengizinkan pertukaran Cookie
 }));
 // Parse JSON to accept request bodies from the frontend

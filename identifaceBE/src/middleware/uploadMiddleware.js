@@ -20,6 +20,7 @@ const storage = multer.diskStorage({
     }
 });
 
+
 // Validate file type
 const fileFilter = (req, file, cb) => {
     const allowedMimes = (process.env.UPLOAD_ALLOWED_TYPES || 'image/jpeg,image/png,image/jpg')
