@@ -163,31 +163,11 @@ const getAdminReport = async ({ prodi, angkatan, id_mk, from_date, to_date, limi
     const values = [];
     let idx = 1;
 
-    if (prodi) {
-        conditions.push(`m.prodi = $${idx}`);
-        values.push(prodi);
-        idx++;
-    }
-    if (angkatan) {
-        conditions.push(`m.angkatan = $${idx}`);
-        values.push(parseInt(angkatan, 10));
-        idx++;
-    }
-    if (id_mk) {
-        conditions.push(`mk.id_mk = $${idx}`);
-        values.push(parseInt(id_mk, 10));
-        idx++;
-    }
-    if (from_date) {
-        conditions.push(`s.tanggal >= $${idx}`);
-        values.push(from_date);
-        idx++;
-    }
-    if (to_date) {
-        conditions.push(`s.tanggal <= $${idx}`);
-        values.push(to_date);
-        idx++;
-    }
+    if (prodi) { conditions.push(`m.prodi = $${idx}`); values.push(prodi); idx++; }
+    if (angkatan) { conditions.push(`m.angkatan = $${idx}`); values.push(parseInt(angkatan, 10)); idx++; }
+    if (id_mk) { conditions.push(`mk.id_mk = $${idx}`); values.push(parseInt(id_mk, 10)); idx++; }
+    if (from_date) { conditions.push(`s.tanggal >= $${idx}`); values.push(from_date); idx++; }
+    if (to_date) { conditions.push(`s.tanggal <= $${idx}`); values.push(to_date); idx++; }
 
     const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
 
@@ -206,6 +186,9 @@ const getAdminReport = async ({ prodi, angkatan, id_mk, from_date, to_date, limi
     values.push(limit, offset);
     const result = await pool.query(
         `SELECT
+           p.id_presensi,       -- 👈 WAJIB DITAMBAHKAN UNTUK FITUR UPDATE
+           s.id_sesi,
+           p.bukti_url,         -- 👈 WAJIB DITAMBAHKAN UNTUK MELIHAT BUKTI FILE
            m.nim,
            m.nama_lengkap AS nama,
            m.prodi,
@@ -288,13 +271,26 @@ const getLiveAttendanceBySesi = async (id_sesi) => {
 /**
  * Update attendance status manually by Admin
  */
-const updateAttendanceStatus = async (id_presensi, { status, bukti_url }) => {
+// const updateAttendanceStatus = async (id_presensi, { status, bukti_url }) => {
+//     const result = await pool.query(
+//         `UPDATE presensi 
+//          SET status = $1, bukti_url = $2, updated_at = NOW() 
+//          WHERE id_presensi = $3 
+//          RETURNING *`,
+//         [status, bukti_url, id_presensi]
+//     );
+//     return result.rows[0] || null;
+// };
+/**
+ * Update attendance status manually by Admin (Hanya Status)
+ */
+const updateAttendanceStatus = async (id_presensi, { status }) => {
     const result = await pool.query(
         `UPDATE presensi 
-         SET status = $1, bukti_url = $2, updated_at = NOW() 
-         WHERE id_presensi = $3 
+         SET status = $1, updated_at = NOW() 
+         WHERE id_presensi = $2 
          RETURNING *`,
-        [status, bukti_url, id_presensi]
+        [status, id_presensi]
     );
     return result.rows[0] || null;
 };

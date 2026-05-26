@@ -44,6 +44,6 @@ router.get('/attendance/summary', getAttendanceSummary);
  * Manual update attendance status by Admin (tombol +/- di UI)
  * Endpoint: PATCH /api/admin/attendance/:id_presensi/status
  */
-router.patch('/attendance/:id_presensi/status', upload.single('bukti'), updateAttendanceManual);
-
+// router.patch('/attendance/:id_presensi/status', upload.single('bukti'), updateAttendanceManual);
+router.patch('/attendance/update-status', updateAttendanceManual);
 module.exports = router;

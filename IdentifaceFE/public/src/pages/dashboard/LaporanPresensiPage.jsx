@@ -9,7 +9,7 @@ const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 async function apiFetch(path, options = {}) {
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
-    credentials: "include", // WAJIB untuk mengirim HTTP-Only Cookie
+    credentials: "include", 
   });
 
   if (res.status === 401) {
@@ -45,7 +45,6 @@ export default function LaporanPresensiPage() {
   const [formData, setFormData] = useState({
     statusBaru: 'hadir',
     alasan: '',
-    bukti: null, // Sesuai dengan field upload.single('bukti') di backend
   })
 
   // ─── FETCH DATA ──────────────────────────────────────────────────────────
@@ -55,10 +54,9 @@ export default function LaporanPresensiPage() {
     try {
       if (activeTab === 'mahasiswa') {
         const res = await apiFetch('/admin/attendance/report');
-        setMahasiswaData(Array.isArray(res.data) ? res.data : []);
+        setMahasiswaData(Array.isArray(res.data?.data) ? res.data.data : []);
       } else {
         const res = await apiFetch('/admin/attendance/summary');
-        console.log("Data Mata Kuliah dari API: ", res.data);
         setMataKuliahData(Array.isArray(res.data) ? res.data : []);
       }
     } catch (err) {
@@ -85,11 +83,9 @@ export default function LaporanPresensiPage() {
     setModalAction(action)
     setSelectedRow(row)
     
-    // Set default status di dropdown sesuai data asli jika ada, kalau tidak 'hadir'
     setFormData({
       statusBaru: row.status ? row.status.toLowerCase() : 'hadir',
-      alasan: '',
-      bukti: null,
+      alasan: '', // Kosongkan saat dibuka
     })
     setIsModalOpen(true)
   }
@@ -100,25 +96,28 @@ export default function LaporanPresensiPage() {
     setSelectedRow(null)
   }
 
+// ─── UPDATE PRESENSI ─────────────────────────
   const handleSaveModal = async () => {
-    if (!selectedRow || !selectedRow.id_presensi) {
-      alert("Error: ID Presensi tidak ditemukan pada data ini.");
-      return;
-    }
+    if (!selectedRow) return;
 
     setIsSaving(true);
     try {
-      const payload = new FormData();
-      payload.append('status', formData.statusBaru);
-      payload.append('alasan', formData.alasan);
-      if (formData.bukti) {
-        payload.append('bukti', formData.bukti); // Key 'bukti' sesuai rute backend
-      }
+      const payload = {
+        id_presensi: selectedRow.id_presensi, // Bisa berisi null jika belum pernah absen
+        id_sesi: selectedRow.id_sesi,         // Diperlukan jika harus membuat data baru
+        nim: selectedRow.nim,                 // Diperlukan jika harus membuat data baru
+        status: formData.statusBaru,
+        alasan: formData.alasan 
+      };
 
-      const res = await fetch(`${API_BASE}/admin/attendance/${selectedRow.id_presensi}/status`, {
+      // URL diubah menyesuaikan route baru di backend
+      const res = await fetch(`${API_BASE}/admin/attendance/update-status`, {
         method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         credentials: 'include',
-        body: payload, // Browser akan set Content-Type: multipart/form-data otomatis
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();
@@ -169,14 +168,14 @@ export default function LaporanPresensiPage() {
       {/* MAIN */}
       <main className="flex-1 px-10 pb-10 flex gap-8">
         <aside className="w-64 bg-[#6BAAAF] rounded-lg shadow-md px-5 py-7 flex flex-col">
-          <h2 className="text-center text-xl font-bold mb-6">Menu Admin</h2>
+          <h2 className="text-center text-xl font-bold mb-6 text-white">Menu Admin</h2>
           <nav className="space-y-3">
             <button className="w-full h-10 rounded bg-[#123B5D] text-white font-semibold shadow-inner">
               Laporan Presensi
             </button>
             <button
               onClick={() => navigate('/admin/data-wajah')}
-              className="w-full h-10 rounded border border-white text-black font-semibold"
+              className="w-full h-10 rounded border border-white text-black bg-white font-semibold hover:bg-gray-100 transition-colors"
             >
               Data Wajah
             </button>
@@ -384,44 +383,16 @@ export default function LaporanPresensiPage() {
                   </select>
                 </div>
 
-                <div className="mb-4">
+                <div className="mb-6">
                   <label className="block text-sm font-bold text-gray-700 mb-1.5">Keterangan / Alasan</label>
                   <textarea
                     value={formData.alasan}
                     onChange={(e) => setFormData({ ...formData, alasan: e.target.value })}
                     disabled={modalAction === 'lihat' || isSaving}
-                    placeholder={modalAction === 'lihat' ? (selectedRow.alasan || 'Tidak ada keterangan') : "Tuliskan alasan perubahan kehadiran..."}
+                    placeholder={modalAction === 'lihat' ? (selectedRow.alasan || 'Tidak ada keterangan khusus') : "Tuliskan alasan perubahan kehadiran..."}
                     className="w-full h-24 border border-gray-300 rounded-lg px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[#123B5D]/30 disabled:bg-gray-100"
                   />
                 </div>
-
-                {modalAction !== 'lihat' ? (
-                  <div className="mb-6">
-                    <label className="block text-sm font-bold text-gray-700 mb-1.5">Upload Bukti (Opsional)</label>
-                    <div className="flex items-center gap-3">
-                      <label className={`bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-semibold px-4 py-2 rounded-lg cursor-pointer transition-colors ${isSaving ? 'opacity-50 pointer-events-none' : ''}`}>
-                        Pilih File Dokumen
-                        <input
-                          type="file"
-                          accept=".jpg,.jpeg,.png,.pdf"
-                          disabled={isSaving}
-                          onChange={(e) => setFormData({ ...formData, bukti: e.target.files[0] })}
-                          className="hidden"
-                        />
-                      </label>
-                      <span className="text-sm text-gray-600 truncate max-w-[200px]">
-                        {formData.bukti ? formData.bukti.name : "Belum ada file dipilih"}
-                      </span>
-                    </div>
-                  </div>
-                ) : selectedRow.bukti_url ? (
-                  <div className="mb-6">
-                     <label className="block text-sm font-bold text-gray-700 mb-1.5">Bukti Terlampir</label>
-                     <a href={`${API_BASE.replace('/api', '')}${selectedRow.bukti_url}`} target="_blank" rel="noreferrer" className="text-sm text-blue-600 underline font-semibold hover:text-blue-800">
-                       Lihat File Bukti
-                     </a>
-                  </div>
-                ) : null}
               </>
             )}
 

@@ -59,17 +59,51 @@ const registerFaceData = async (req, res, next) => {
  * Update attendance status manually and upload proof
  * Endpoint: PATCH /api/admin/attendance/:id_presensi/status
  */
+// const updateAttendanceManual = async (req, res, next) => {
+//     try {
+//         const { id_presensi } = req.params;
+//         const { status } = req.body;
+//         // File path jika ada upload bukti
+//         const bukti_url = req.file ? `/uploads/bukti/${req.file.filename}` : null;
+
+//         const updated = await attendanceRepository.updateAttendanceStatus(id_presensi, { status, bukti_url });
+
+//         if (!updated) {
+//             return res.status(404).json({ success: false, message: 'Data presensi tidak ditemukan.', error: null });
+//         }
+
+//         res.json({
+//             success: true,
+//             message: 'Status presensi berhasil diperbarui.',
+//             data: updated
+//         });
+//     } catch (error) {
+//         next(error);
+//     }
+// };
+/**
+ * Update attendance status manually without proof
+ * Endpoint: PATCH /api/admin/attendance/:id_presensi/status
+ */
 const updateAttendanceManual = async (req, res, next) => {
     try {
-        const { id_presensi } = req.params;
-        const { status } = req.body;
-        // File path jika ada upload bukti
-        const bukti_url = req.file ? `/uploads/bukti/${req.file.filename}` : null;
+        const { id_presensi, id_sesi, nim, status } = req.body;
+        let updated;
 
-        const updated = await attendanceRepository.updateAttendanceStatus(id_presensi, { status, bukti_url });
-
-        if (!updated) {
-            return res.status(404).json({ success: false, message: 'Data presensi tidak ditemukan.', error: null });
+        if (id_presensi) {
+            // Jika data sudah ada, cukup update statusnya
+            updated = await attendanceRepository.updateAttendanceStatus(id_presensi, { status });
+        } else {
+            // Jika data belum ada (mahasiswa Alfa), buatkan record baru
+            updated = await attendanceRepository.upsertAttendance({
+                id_sesi,
+                nim,
+                status,
+                waktu_scan: new Date(), // Waktu diubah saat ini
+                similarity: null,
+                latitude: null,
+                longitude: null
+            });
         }
 
         res.json({
@@ -81,7 +115,6 @@ const updateAttendanceManual = async (req, res, next) => {
         next(error);
     }
 };
-
 /**
  * Get all students with pagination and optional filters
  * Endpoint: GET /api/admin/students
