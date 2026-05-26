@@ -330,7 +330,7 @@ export default function MonitorPage() {
                         </th>
                         <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">NIM</th>
                         <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Nama Mahasiswa</th>
-                        <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Waktu Scan</th>
+                        <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Waktu</th>
                         <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Status</th>
                         <th className="text-left px-4 py-3 text-sm font-bold text-gray-600">Aksi</th>
                       </tr>
