@@ -30,6 +30,13 @@ Sistem presensi di beberapa fakultas masih menggunakan metode QR code bahkan ada
 
 IdentiFace adalah sistem presensi berbasis client-server yang mengimplementasikan computer vision untuk facial recognition. Sistem ini bekerja dengan mengekstraksi feature map wajah dari tangkapan kamera secara real-time, lalu memvalidasinya melalui arsitektur REST API menuju server cloud. Aplikasi ini dirancang untuk menyelesaikan masalah latensi dan redudansi data pada pencatatan presensi konvensional, serta mencegah anomali seperti buddy punching (titip absen).
 
+## Kumpulan Link
+1. Link PPT: https://canva.link/cdd1gdfw0xoupjy
+2. Link Repository: https://github.com/Dapreall/IdentiFace.git
+3. Link Deploy Frontend: https://identi-face.vercel.app/
+4. Link Deploy Backend:
+5. Link Video Demo yang diupload ke youtube: 
+
 ## Techstack 💻
 <img width="874" height="341" alt="image" src="https://github.com/user-attachments/assets/0ae20203-2b82-493d-984b-5385251b37e7" />
 
