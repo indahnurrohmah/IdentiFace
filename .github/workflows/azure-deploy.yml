@@ -34,11 +34,11 @@ jobs:
           context: ./${{ env.FOLDER_AI }}
           file: ./${{ env.FOLDER_AI }}/Dockerfile
           push: true
-          tags: ghcr.io/${{ github.repository }}/ai-engine:latest
+          tags: ghcr.io/indahnurrohmah/identiface/ai-engine:latest
 
       - name: Deploy Container to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          images: 'ghcr.io/${{ github.repository }}/ai-engine:latest'
+          images: 'ghcr.io/indahnurrohmah/identiface/ai-engine:latest'
