@@ -27,7 +27,6 @@ app.use(cors({
     
     origin: ['http://localhost:5173', 
         'https://identi-face.vercel.app'
-
     ],
     credentials: true                // WAJIB true agar mengizinkan pertukaran Cookie
 }));
