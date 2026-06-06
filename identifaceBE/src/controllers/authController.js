@@ -177,7 +177,7 @@ const login = async (req, res, next) => {
         res.cookie('token', token, {
             httpOnly: true, // Tidak bisa diakses oleh JavaScript (Aman dari XSS)
             secure: process.env.NODE_ENV === 'production', // Gunakan true jika sudah HTTPS (Production)
-            sameSite: 'strict', // Mencegah serangan CSRF
+            sameSite: 'none', // Mencegah serangan CSRF
             maxAge: 8 * 60 * 60 * 1000 // Kedaluwarsa dalam 8 jam (dalam milidetik)
         });
 
@@ -199,7 +199,7 @@ const login = async (req, res, next) => {
 const logout = (req, res) => {
     res.clearCookie('token', {
         httpOnly: true,
-        sameSite: 'strict',
+        sameSite: 'none',
         secure: process.env.NODE_ENV === 'production'
     });
     res.json({ success: true, message: 'Logout berhasil' });
