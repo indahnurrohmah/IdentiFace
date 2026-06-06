@@ -11,7 +11,8 @@ app = FastAPI()
 allowed_origins = [
     "http://localhost:3000",     
     "http://localhost:5173",      
-    "http://127.0.0.1:3000",      
+    "http://127.0.0.1:3000", 
+    "https://identiface-backend-api-f3bse6gycfacb7au.southeastasia-01.azurewebsites.net"     
 ]
 
 app.add_middleware(
@@ -26,6 +27,10 @@ UPLOAD_FOLDER = "stored-faces"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 MATCH_THRESHOLD = 0.6 # distance threshold (lower = stricter)
+
+@app.get("/")
+async def root():
+    return {"status": "ok", "message": "IdentiFace AI Engine is running smoothly!"}
 
 @app.post("/register-face/{nim:path}")
 async def register_face(nim: str, file: UploadFile = File(...)):
