@@ -26,8 +26,7 @@ router.get('/students', getAllStudents);
  * Register student face data to the AI system
  * Endpoint: POST /api/admin/face-data/:nim/register
  */
-router.post('/face-data/:nim(*)/register', upload.single('file'), registerFaceData);
-
+router.post('/face-data/register', upload.single('file'), registerFaceData);
 /**
  * Get detailed attendance report timeline for admin
  * Endpoint: GET /api/admin/attendance/report

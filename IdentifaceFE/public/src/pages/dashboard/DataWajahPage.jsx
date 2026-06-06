@@ -175,17 +175,17 @@ export default function DataWajahPage() {
     setIsSaving(true);
     setScanStep(2); // Step Mapping / Proses AI
 
-    try {
+try {
       const formData = new FormData();
       formData.append("file", fileToUpload);
+      formData.append("nim", selectedRow.nim); 
 
-      // Mengirim POST ke controller admin: registerFaceData
       const response = await fetch(
-        `${API_BASE}/admin/face-data/${encodeURIComponent(selectedRow.nim)}/register`,
+        `${API_BASE}/admin/face-data/register`,
         {
           method: "POST",
           credentials: "include",
-          body: formData, // Browser otomatis set Content-Type ke multipart/form-data
+          body: formData, 
         },
       );
 
@@ -194,6 +194,7 @@ export default function DataWajahPage() {
       if (!response.ok || !json.success) {
         throw new Error(json.message || "Gagal mendaftarkan wajah.");
       }
+      // ... sisa kode di bawahnya tetap sama ...
 
       setScanStep(3); // Step Selesai
       setToast(

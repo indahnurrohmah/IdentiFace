@@ -4,11 +4,11 @@ const studentRepository = require('../repositories/studentRepository');
 const attendanceRepository = require('../repositories/attendanceRepository');
 /**
  * Register student face data to the AI system
- * Endpoint: POST /api/admin/face-data/:nim/register
+ * Endpoint: POST /api/admin/face-data/register
  */
 const registerFaceData = async (req, res, next) => {
     try {
-        const { nim } = req.params;
+        const { nim } = req.body;
 
         // 1. Check if a file was uploaded via Multer
         if (!req.file) {
