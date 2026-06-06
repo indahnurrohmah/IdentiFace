@@ -1,0 +1,37 @@
+name: Deploy AI to Hugging Face
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'face-attendance/**' 
+
+jobs:
+  deploy-to-hf:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Push to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_USERNAME: 'indahnurrohmah'  
+          SPACE_NAME: 'identiface-ai'       
+          FOLDER_AI: 'face-attendance'      
+        run: |
+          # 1. Kloning repositori Hugging Face ke folder sementara
+          git clone https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$SPACE_NAME temp_space
+          
+          # 2. Hapus isi lama di HF (kecuali folder .git) dan masukkan isi folder AI dari GitHub
+          find temp_space -mindepth 1 -not -regex '^temp_space/\.git\(/.*\)?' -delete
+          cp -r ./$FOLDER_AI/* ./temp_space/
+          
+          # 3. Masuk ke folder sementara dan kirim ke Hugging Face
+          cd temp_space
+          git config user.email "bot@github.com"
+          git config user.name "GitHub Actions"
+          git add .
+          git commit -m "Auto-deploy AI Engine from GitHub" || echo "No changes to commit"
+          git push
