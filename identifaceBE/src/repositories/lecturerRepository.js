@@ -13,19 +13,6 @@ const lecturerRepository = {
         const result = await pool.query('SELECT * FROM dosen WHERE id_akun = $1', [id_akun]);
         return result.rows[0] || null;
     },
-
-    /**
-     * Create a new lecturer profile
-     */
-    create: async ({ id_akun, nip, nama }) => {
-        const result = await pool.query(
-            `INSERT INTO dosen (id_akun, nip, nama)
-             VALUES ($1, $2, $3)
-             RETURNING *`,
-            [id_akun, nip, nama]
-        );
-        return result.rows[0];
-    }
 };
 
 /**

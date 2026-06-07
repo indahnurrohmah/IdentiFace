@@ -15,50 +15,6 @@ const findByIdAkun = async (id_akun) => {
 };
 
 /**
- * Find mahasiswa by NIM
- */
-const findByNim = async (nim) => {
-    const result = await pool.query(
-        `SELECT m.*, a.email
-         FROM mahasiswa m
-         JOIN akun a ON a.id_akun = m.id_akun
-         WHERE m.nim = $1`,
-        [nim]
-    );
-    return result.rows[0] || null;
-};
-
-/**
- * Create mahasiswa profile (called after registration + OTP verified)
- */
-const create = async ({ id_akun, nim, nama_lengkap, prodi, angkatan }) => {
-    const result = await pool.query(
-        `INSERT INTO mahasiswa (id_akun, nim, nama_lengkap, prodi, angkatan)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING *`,
-        [id_akun, nim, nama_lengkap, prodi, angkatan]
-    );
-    return result.rows[0];
-};
-
-/**
- * Update mahasiswa profile
- */
-const updateProfile = async (id_akun, { nama_lengkap, prodi, angkatan }) => {
-    const result = await pool.query(
-        `UPDATE mahasiswa
-         SET nama_lengkap = COALESCE($1, nama_lengkap),
-             prodi = COALESCE($2, prodi),
-             angkatan = COALESCE($3, angkatan),
-             updated_at = NOW()
-         WHERE id_akun = $4
-         RETURNING *`,
-        [nama_lengkap, prodi, angkatan, id_akun]
-    );
-    return result.rows[0] || null;
-};
-
-/**
  * Get all mahasiswa (for admin)
  */
 const findAll = async ({ search, prodi, angkatan, limit = 50, offset = 0 } = {}) => {
@@ -162,9 +118,6 @@ const getDashboardSummary = async (nim) => {
 
 module.exports = { 
     findByIdAkun, 
-    findByNim, 
-    create, 
-    updateProfile, 
     findAll, 
     getTodaySchedule,
     getDashboardSummary 

@@ -1,53 +1,5 @@
 const pool = require('../config/db'); // Adjusted to use the pg pool connection
 
-/**
- * Get active sesi (ongoing presensi) for a given kelas
- * A sesi is active when is_active=true AND today is its date
- */
-const findActiveSesi = async (id_kelas) => {
-    const result = await pool.query(
-        `SELECT s.*, k.id_mk, mk.nama_mk, mk.kode_mk
-         FROM sesi_kelas s
-         JOIN kelas k ON k.id_kelas = s.id_kelas
-         JOIN mata_kuliah mk ON mk.id_mk = k.id_mk
-         WHERE s.id_kelas = $1
-           AND s.is_active = TRUE
-           AND s.tanggal = CURRENT_DATE`,
-        [id_kelas]
-    );
-    return result.rows[0] || null;
-};
-
-/**
- * Find any active sesi for mahasiswa enrolled in
- * (used during scan to find which kelas is open)
- */
-const findActiveSesiForMahasiswa = async (nim) => {
-    const result = await pool.query(
-        `SELECT s.*, k.id_mk, mk.nama_mk, mk.kode_mk, k.id_kelas
-         FROM sesi_kelas s
-         JOIN kelas k ON k.id_kelas = s.id_kelas
-         JOIN mata_kuliah mk ON mk.id_mk = k.id_mk
-         JOIN kelas_mahasiswa km ON km.id_kelas = k.id_kelas
-         WHERE km.nim = $1
-           AND s.is_active = TRUE
-           AND s.tanggal = CURRENT_DATE
-         LIMIT 1`,
-        [nim]
-    );
-    return result.rows[0] || null;
-};
-
-/**
- * Get today's attendance record for a mahasiswa in a sesi
- */
-const findByNimAndSesi = async (nim, id_sesi) => {
-    const result = await pool.query(
-        'SELECT * FROM presensi WHERE nim = $1 AND id_sesi = $2',
-        [nim, id_sesi]
-    );
-    return result.rows[0] || null;
-};
 
 /**
  * Insert or update attendance record
@@ -338,9 +290,6 @@ const updateAttendanceStatus = async (id_presensi, { status }) => {
 };
 
 module.exports = {
-    findActiveSesi,
-    findActiveSesiForMahasiswa,
-    findByNimAndSesi,
     upsertAttendance,
     getHistoryByNim,
     getSummaryByNim,
