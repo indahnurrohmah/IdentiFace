@@ -25,15 +25,16 @@ const aiClient = axios.create({
  * @returns {Promise<{ success: boolean, message: string, raw: object }>}
  */
 const registerFace = async (nim, filePath) => {
+    const encodedNim = encodeURIComponent(nim); // '23%2F345569%2FTK%2F34558'
     const form = new FormData();
     form.append('file', fs.createReadStream(filePath), {
         filename: path.basename(filePath),
         contentType: _getMimeType(filePath)
     });
-    
+
     try {
         const response = await aiClient.post(
-            `/register-face/${nim}`,
+            `/register-face/${encodedNim}`, 
             form,
             {
                 headers: {

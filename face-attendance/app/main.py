@@ -5,6 +5,7 @@ import os
 
 from app.face_service import analyze_face
 from app.database import get_connection
+from urllib.parse import unquote
 
 app = FastAPI()
 
@@ -35,6 +36,7 @@ async def root():
 
 @app.post("/register-face/{nim:path}")
 async def register_face(nim: str, file: UploadFile = File(...)):
+    nim = unquote(nim)  # Decode the URL-encoded NIM
     if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File harus berupa gambar.")
     
