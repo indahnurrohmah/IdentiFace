@@ -14,6 +14,10 @@ const registerFaceData = async (req, res, next) => {
         console.log('req.body:', req.body);
         console.log('req.headers content-type:', req.headers['content-type']);
         console.log('===========================');
+        console.log('=== AI SERVICE DEBUG ===');
+        console.log('AI_BASE_URL env:', process.env.AI_BASE_URL);
+        console.log('AI_TIMEOUT env:', process.env.AI_TIMEOUT);
+        console.log('========================');
 
         // 1. Check if a file was uploaded via Multer
         if (!req.file) {
