@@ -12,13 +12,12 @@ RUN apt-get update && apt-get install -y \
 RUN conda install -c conda-forge dlib -y
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-RUN pip install git+https://github.com/ageitgey/face_recognition_models
-RUN pip install --no-cache-dir --no-deps face_recognition
+RUN /opt/conda/bin/pip install --no-cache-dir -r requirements.txt
+RUN /opt/conda/bin/pip install git+https://github.com/ageitgey/face_recognition_models
+RUN /opt/conda/bin/pip install --no-cache-dir --no-deps face_recognition
 
 COPY app/ ./app/
 RUN mkdir -p stored-faces
 
 EXPOSE 8000
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/opt/conda/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
