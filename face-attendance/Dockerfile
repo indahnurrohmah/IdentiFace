@@ -14,9 +14,14 @@ RUN conda install -c conda-forge dlib -y
 COPY requirements.txt .
 RUN /opt/conda/bin/pip install --no-cache-dir -r requirements.txt
 
-# Install face_recognition AFTER requirements.txt, in correct order
-RUN /opt/conda/bin/pip install git+https://github.com/ageitgey/face_recognition_models
+# Copy and install face_recognition_models from local (no GitHub needed)
+COPY face_recognition_models/ ./face_recognition_models/
+RUN /opt/conda/bin/pip install --no-cache-dir --no-deps ./face_recognition_models/
 RUN /opt/conda/bin/pip install --no-cache-dir --no-deps face_recognition==1.3.0
+
+# Verify both installed correctly - build will FAIL here if not
+RUN /opt/conda/bin/python -c "import face_recognition_models; print('models OK')"
+RUN /opt/conda/bin/python -c "import face_recognition; print('face_recognition OK')"
 
 COPY app/ ./app/
 RUN mkdir -p stored-faces
