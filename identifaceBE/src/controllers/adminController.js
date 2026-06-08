@@ -9,6 +9,11 @@ const attendanceRepository = require('../repositories/attendanceRepository');
 const registerFaceData = async (req, res, next) => {
     try {
         const { nim } = req.body;
+        console.log('=== REGISTER FACE DEBUG ===');
+        console.log('req.file:', req.file);
+        console.log('req.body:', req.body);
+        console.log('req.headers content-type:', req.headers['content-type']);
+        console.log('===========================');
 
         // 1. Check if a file was uploaded via Multer
         if (!req.file) {
