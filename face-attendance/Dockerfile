@@ -1,10 +1,12 @@
-FROM anaconda/miniconda3
+FROM continuumio/miniconda3
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y \
     libgl1 \
     libglib2.0-0 \
     git \
+    cmake \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 RUN conda install -c conda-forge dlib -y
