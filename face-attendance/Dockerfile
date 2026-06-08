@@ -16,8 +16,9 @@ RUN /opt/conda/bin/pip install --no-cache-dir setuptools
 COPY requirements.txt .
 RUN /opt/conda/bin/pip install --no-cache-dir -r requirements.txt
 
-COPY face_recognition_models/ ./face_recognition_models_repo/
-RUN /opt/conda/bin/pip install --no-cache-dir --no-deps ./face_recognition_models_repo/
+# Copy directly into site-packages — bypasses pip install entirely
+COPY face_recognition_models/ /opt/conda/lib/python3.13/site-packages/face_recognition_models/
+
 RUN /opt/conda/bin/pip install --no-cache-dir --no-deps face_recognition==1.3.0
 
 RUN /opt/conda/bin/python -c "import face_recognition_models; print('models OK')"
