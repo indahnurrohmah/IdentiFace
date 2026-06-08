@@ -12,6 +12,8 @@ env/
 .venv/
 .env_backup
 
+!face_recognition_models/
+
 # Environment Variables (JANGAN di-commit!)
 .env
 .env.local
