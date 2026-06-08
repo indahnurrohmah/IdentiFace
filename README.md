@@ -32,10 +32,11 @@ IdentiFace adalah sistem presensi berbasis client-server yang mengimplementasika
 
 ## Kumpulan Link
 1. Link PPT: https://canva.link/cdd1gdfw0xoupjy
-2. Link Repository: https://github.com/Dapreall/IdentiFace.git
+2. Link Repository: https://github.com/indahnurrohmah/IdentiFace.git
 3. Link Deploy Frontend: https://identi-face.vercel.app/
-4. Link Deploy Backend:
-5. Link Video Demo yang diupload ke youtube: 
+4. Link Deploy Backend: identiface-backend-api-f3bse6gycfacb7au.southeastasia-01.azurewebsites.net
+5. ai: identiface-ai-api-a7d7eahnf5c8c7dr.southeastasia-01.azurewebsites.net
+6. Link Video Demo yang diupload ke youtube: https://www.youtube.com/watch?v=yWlH_sH7Zls
 
 ## Techstack 💻
 <img width="874" height="341" alt="image" src="https://github.com/user-attachments/assets/0ae20203-2b82-493d-984b-5385251b37e7" />
