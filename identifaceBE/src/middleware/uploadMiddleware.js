@@ -2,13 +2,17 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Use /tmp on Azure (always writable), fallback for local dev
+const uploadDir = process.env.TEMP_UPLOAD_DIR || 
+    (process.platform === 'win32' 
+        ? path.join(process.cwd(), 'uploads', 'tmp')  // Windows local dev
+        : '/tmp/uploads');                              // Linux/Azure
+
 // Ensure temp upload directory exists
-const uploadDir = path.join(process.cwd(), 'uploads', 'tmp');
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-// Disk storage - temporary, file will be deleted after AI processing
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadDir);
@@ -20,8 +24,6 @@ const storage = multer.diskStorage({
     }
 });
 
-
-// Validate file type
 const fileFilter = (req, file, cb) => {
     const allowedMimes = (process.env.UPLOAD_ALLOWED_TYPES || 'image/jpeg,image/png,image/jpg')
         .split(',')
@@ -34,7 +36,6 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-// Max file size from env, default 5MB
 const maxSizeBytes = (parseInt(process.env.UPLOAD_MAX_SIZE_MB, 10) || 5) * 1024 * 1024;
 
 const upload = multer({
