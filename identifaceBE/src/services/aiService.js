@@ -6,6 +6,8 @@ const path = require('path');
 const AI_BASE_URL = process.env.AI_BASE_URL || 'http://127.0.0.1:8000';
 const AI_TIMEOUT = parseInt(process.env.AI_TIMEOUT, 10) || 15000;
 
+console.log('[aiService] AI_BASE_URL:', AI_BASE_URL);
+console.log('[aiService] AI_TIMEOUT:', AI_TIMEOUT);
 /**
  * Build a configured axios instance for the AI service
  */
@@ -28,7 +30,7 @@ const registerFace = async (nim, filePath) => {
         filename: path.basename(filePath),
         contentType: _getMimeType(filePath)
     });
-
+    
     try {
         const response = await aiClient.post(
             `/register-face/${nim}`,
