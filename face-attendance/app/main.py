@@ -12,7 +12,8 @@ allowed_origins = [
     "http://localhost:3000",     
     "http://localhost:5173",      
     "http://127.0.0.1:3000", 
-    "https://identiface-backend-api-f3bse6gycfacb7au.southeastasia-01.azurewebsites.net"     
+    "https://identiface-backend-api-f3bse6gycfacb7au.southeastasia-01.azurewebsites.net",
+    "https://identi-face.vercel.app"
 ]
 
 app.add_middleware(
