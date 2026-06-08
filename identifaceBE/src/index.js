@@ -22,7 +22,8 @@ const app = express();
 // GLOBAL MIDDLEWARE 
 app.use(cors({ 
     origin: ['http://localhost:5173', 
-        'https://identi-face.vercel.app'
+        'https://identi-face.vercel.app',
+        'https://identiface-backend-api-f3bse6gycfacb7au.southeastasia-01.azurewebsites.net'
     ],
     credentials: true            
 }));
@@ -30,9 +31,6 @@ app.use(cors({
 // Parse JSON to accept request bodies from the frontend
 app.use(express.json());
 app.use(cookieParser());
-
-// Parse URL-encoded data (optional, useful for standard form submissions)
-app.use(express.urlencoded({ extended: true })); 
 
 // Apply standard rate limiting (100 req/15min) to all API routes
 app.use(apiLimiter); 
