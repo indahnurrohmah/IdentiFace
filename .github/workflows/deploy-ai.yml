@@ -24,13 +24,10 @@ jobs:
 
     - name: Build and Push Docker Image
       run: |
-        # Masuk ke dalam folder monorepo kamu
         cd face-attendance
         
-        # Merakit dan Mengunggah Wadah
-        # GANTI 'namaregistrymu' DENGAN NAMA ACR MILIKMU
-        docker build -t namaregistrymu.azurecr.io/identiface-ai:latest .
-        docker push namaregistrymu.azurecr.io/identiface-ai:latest
+        docker build -t identifaceacr.azurecr.io/identiface-ai:latest .
+        docker push identifaceacr.azurecr.io/identiface-ai:latest
 
     - name: Deploy to Azure Web App
       uses: azure/webapps-deploy@v2
