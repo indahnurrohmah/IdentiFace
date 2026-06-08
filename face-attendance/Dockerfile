@@ -13,8 +13,10 @@ RUN conda install -c conda-forge dlib -y
 
 COPY requirements.txt .
 RUN /opt/conda/bin/pip install --no-cache-dir -r requirements.txt
+
+# Install face_recognition AFTER requirements.txt, in correct order
 RUN /opt/conda/bin/pip install git+https://github.com/ageitgey/face_recognition_models
-RUN /opt/conda/bin/pip install --no-cache-dir --no-deps face_recognition
+RUN /opt/conda/bin/pip install --no-cache-dir --no-deps face_recognition==1.3.0
 
 COPY app/ ./app/
 RUN mkdir -p stored-faces
