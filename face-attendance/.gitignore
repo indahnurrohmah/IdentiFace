@@ -12,8 +12,6 @@ env/
 .venv/
 .env_backup
 
-!face_recognition_models/
-
 # Environment Variables (JANGAN di-commit!)
 .env
 .env.local
@@ -66,7 +64,6 @@ known_faces/
 embeddings/
 *.pkl
 *.pickle
-*.dat
 
 # Uploaded images / temporary captures
 uploads/
@@ -83,3 +80,9 @@ exports/
 reports/
 attendance_*.csv
 attendance_*.xlsx
+
+# MUST be at bottom - un-ignore face_recognition_models
+!face_recognition_models/
+!face_recognition_models/**
+!face_recognition_models/models/
+!face_recognition_models/models/*.dat
